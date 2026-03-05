@@ -1,12 +1,16 @@
+# src/components/buttons.py
 import flet as ft
 
-def PrimaryButton(text, on_click=None, padding=None):
-    return ft.ElevatedButton(
-        content=ft.Text(text, weight=ft.FontWeight.BOLD),
-        bgcolor="#EF3961",  # สีชมพูแดงตามดีไซน์ของนาย
-        color="white",
-        width=300,
-        height=50,
-        on_click=on_click,
-        style=ft.ButtonStyle(padding=padding) if padding else None
-    )
+class PrimaryButton(ft.ElevatedButton):
+    def __init__(self, text: str, on_click=None, padding=None, weight=None, **kwargs):
+        
+        super().__init__(**kwargs) 
+        
+        self.text = text
+        self.on_click = on_click
+        self.style = ft.ButtonStyle(
+            color="#FFF6FE",
+            bgcolor="#EF3961",
+            padding=padding,
+            text_style=ft.TextStyle(weight=weight)
+        )

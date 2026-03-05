@@ -10,7 +10,7 @@ def LoginScreen(page: ft.Page):
     # 🌟 เรียกใช้ Controller (สมอง)
     controller = AuthController()
 
-    siet_logo = ft.Image(src="logo_1.jpeg", width=150, height=150, fit=ft.ImageFit.FIT_WIDTH)
+    siet_logo = ft.Image(src="siet_logo.jpeg", width=150, height=150, fit=ft.ImageFit.FIT_WIDTH)
     
     # กลุ่มข้อความยืนยันตัวตน
     txt_group = ft.Container(
@@ -31,24 +31,24 @@ def LoginScreen(page: ft.Page):
         email = email_field.value.strip() if email_field.value else ""
         password = password_field.value.strip() if password_field.value else ""
         
-        # คลีน Error เก่าทิ้งก่อน
+        # 1. คลีน Error เก่าทิ้งก่อนทุกครั้งที่กดปุ่ม
         email_field.error_text = None
         password_field.error_text = None
         has_error = False
 
-        # เช็คช่องว่าง (Validation)
+        # 2. เช็คช่องว่าง (Validation) แจ้งเตือนด้วยข้อความใหม่
         if not email:
-            email_field.error_text = "กรุณากรอกอีเมล"
+            email_field.error_text = "โปรดกรอกอีเมล"
             has_error = True
         if not password:
-            password_field.error_text = "กรุณากรอกรหัสผ่าน"
+            password_field.error_text = "โปรดกรอกรหัสผ่าน"
             has_error = True
 
         if has_error:
             page.update()
             return
 
-        # โชว์วงแหวนโหลด
+        # 3. โชว์วงแหวนโหลดระหว่างรอ API
         login_btn_actual.content = ft.ProgressRing(width=20, height=20, color="#FFF6FE")
         login_btn_actual.disabled = True
         page.update()
@@ -56,28 +56,30 @@ def LoginScreen(page: ft.Page):
         # 🧠 โยนให้ Controller คิดและยิง API
         result = controller.process_login(email, password)
 
-        # คืนค่าปุ่มกลับมาเป็นตัวหนังสือ
-        login_btn_actual.content = ft.Text("LOG IN", weight=ft.FontWeight.BOLD)
+        # 4. คืนค่าปุ่มกลับมาเป็นตัวหนังสือ
+        login_btn_actual.content = None
         login_btn_actual.disabled = False
 
-        # ประมวลผลลัพธ์จาก Controller
+        # 5. ประมวลผลลัพธ์จาก Controller
         if result["success"]:
-            # เก็บ Session และเปลี่ยนหน้า
+            # สำเร็จ: เก็บ Session และเปลี่ยนหน้า
             for key, value in result["session_data"].items():
                 page.session.set(key, value)
             page.go(result["route"])
         else:
-            # แจ้งเตือนถ้ารหัสผิด
-            page.snack_bar = ft.SnackBar(ft.Text(result["message"]), bgcolor="red")
-            page.snack_bar.open = True
+            # 🌟 ล้มเหลว: แจ้งเตือนด้วย error_text ตามที่ออกแบบใหม่ (เอา SnackBar ออก)
+            email_field.error_text = "อีเมลไม่ถูกต้อง"
+            password_field.error_text = "รหัสผ่านไม่ถูกต้อง"
 
+        # สั่งอัปเดตหน้าจอเพื่อโชว์ Error หรือเปลี่ยนปุ่มกลับ
         page.update()
 
     # --- 3. ปุ่มล็อกอินและจัด Layout (กล่องซ้อนกล่องของนาย) ---
     login_btn_actual = PrimaryButton(
         text="LOG IN",
+        weight=ft.FontWeight.BOLD,
         on_click=do_login,
-        padding=ft.padding.symmetric(horizontal=40, vertical=20)
+        padding=ft.padding.symmetric(horizontal=40, vertical=30)
     )
     
     login_btn_container = ft.Container(content=login_btn_actual)
@@ -86,8 +88,8 @@ def LoginScreen(page: ft.Page):
     field_group = ft.Container(
         content=ft.Column(
             controls=[email_field, password_field, login_btn_container],
-            spacing=20,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20
         ),
         margin=ft.margin.only(top=50)
     )
@@ -113,18 +115,15 @@ def LoginScreen(page: ft.Page):
     # ส่งออกหน้าจอ Login
     return ft.View(
         route="/login",
-        bgcolor="#FFF6FE",
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        vertical_alignment=ft.MainAxisAlignment.END,
+        bgcolor="#FFFFFF",
+        padding=0,
         appbar=ft.AppBar(
             title=ft.Text("KMITL"), 
             center_title=True,
             color="#FFF6FE", 
             bgcolor="#EF3961"
         ),
-        controls=[
-            siet_logo,
-            red_box   
-        ],
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        vertical_alignment=ft.MainAxisAlignment.END,
-        padding=0
+        controls=[siet_logo, red_box]
     )

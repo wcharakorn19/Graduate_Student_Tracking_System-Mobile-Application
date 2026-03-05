@@ -6,6 +6,7 @@ import sys
 from screens.auth.welcome_screen import WelcomeScreen
 from screens.auth.login_screen import LoginScreen
 from screens.student.student_home import StudentHome
+from screens.advisor.advisor_home import AdvisorHome
 
 # Setup App 
 def main(page: ft.Page):
@@ -36,8 +37,8 @@ def main(page: ft.Page):
         #     page.views.append(ContactScreen(page))
         # elif t_route.match("/profile"):
         #     page.views.append(ProfileScreen(page))
-        # elif t_route.match("/teacher_home"):
-        #     page.views.append(AdvisorDashboard(page))
+        elif t_route.match("/advisor_home"):
+            page.views.append(AdvisorHome(page))
         # elif t_route.match("/form1/:id"):
         #     page.views.append(FormOneDetailScreen(page, t_route.id))
         # ---------------------------------------------------------

@@ -1,36 +1,34 @@
 import flet as ft
 
+from components.buttons import PrimaryButton
+
 def WelcomeScreen(page: ft.Page):
-    welcome_view = ft.Column(
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        controls=[
-            ft.Container(
-                margin=ft.margin.only(left=23, right=23),
-                content=ft.Image(src="logo.png")
-            ),
-            ft.Container(
-                margin=ft.margin.only(bottom=150, top=70),
-                content=ft.ElevatedButton(
-                    text="WELCOME",
-                    bgcolor=ft.Colors.PINK_300,
-                    width=150,
-                    height=65,
-                    on_click=lambda _: page.go("/login"), # เปลี่ยนไปหน้า Login ทันที
-                ),
-            ),
-            ft.Container(
-                width=306,
-                margin=ft.margin.only(bottom=20),
-                alignment=ft.alignment.center,
-                content=ft.Text("Graduate Student Tracking System", color=ft.Colors.PINK_400, size=18)
-            )
-        ]
+    # SIET KMITL LOGO
+    text_logo = ft.Image(src="kmitl_logo.png")
+    # WELCOME button
+    welcome_btn = ft.Container(
+        content=PrimaryButton(
+            text="WELCOME", 
+            on_click=lambda _: page.go("/login"), 
+            weight=ft.FontWeight.BOLD,
+            padding=ft.padding.symmetric(horizontal=30, vertical=30) # ปรับระยะตัวอักษรกับขอบปุ่ม
+        ),
+        margin=ft.margin.only(top=70, bottom=120) # ปรับระยะปุ่ม WELCOME
+    )
+
+    welcome_txt = ft.Container(
+        content=ft.Text("Graduate Student Tracking System", color="#EF3961", size=18),
+        margin=ft.margin.only(bottom=50) # ปรับระยะข้อความ Graduate
     )
 
     return ft.View(
         route="/",
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         vertical_alignment=ft.MainAxisAlignment.END,
-        bgcolor=ft.Colors.WHITE,
-        controls=[welcome_view]
+        bgcolor="#FFFFFF",
+        controls=[
+            text_logo,
+            welcome_btn,
+            welcome_txt
+        ]
     )

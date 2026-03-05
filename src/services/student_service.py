@@ -29,21 +29,3 @@ class StudentService:
             print(f"[ERROR] StudentService: {e}")
             return None, f"เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: {str(e)}"
 
-# ==========================================
-# 🛑 โซนทดสอบ (รันเฉพาะไฟล์นี้เพื่อเทส API)
-# ==========================================
-if __name__ == "__main__":
-    import json
-    print("🚀 [TEST] กำลังทดสอบวิ่งไปดึงข้อมูลจาก Server...")
-    
-    test_service = StudentService()
-    
-    # 🧪 ทดลองดึงข้อมูลของคนที่ 2 (STD-002)
-    test_id = "STD-002" 
-    data, error = test_service.fetch_home_data(user_id=test_id)
-    
-    if error:
-        print(f"❌ [FAIL] ทดสอบไม่ผ่าน: {error}")
-    else:
-        print(f"✅ [SUCCESS] เชื่อมต่อติด! ข้อมูลของ {test_id} คือ:")
-        print(json.dumps(data, indent=4, ensure_ascii=False))
