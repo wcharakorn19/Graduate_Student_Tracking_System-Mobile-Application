@@ -4,15 +4,15 @@ from controllers.student_controller import StudentController
 from components.shared_navbar import SharedNavBar
 from components.base_card import BaseCard
 from components.error_banner import ErrorBanner
+from core.auth_guard import require_auth
 
 
 def StudentHome(page: ft.Page):
     controller = StudentController()
 
     # 🌟 ดึงข้อมูลจาก Session มาเตรียมไว้ให้พร้อม
-    user_id = page.session.get("user_id")
+    user_id = require_auth(page)
     if not user_id:
-        page.go("/login")
         return ft.View(
             route="/student_home", controls=[ft.Text("Redirecting to login...")]
         )
@@ -29,21 +29,21 @@ def StudentHome(page: ft.Page):
         "Loading...", size=16, weight=ft.FontWeight.BOLD, color="black"
     )
 
-    activities_list = ft.Column(spacing=15)
+    activities_list = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
     error_container = ft.Column(spacing=0)  # กล่องสำหรับใส่ ErrorBanner (ถ้ามี)
 
     # --- 2. ฟังก์ชันโหลดข้อมูล (จุดที่แก้ไข) ---
     async def load_data(e=None):
         error_container.controls.clear()
 
-        # แสดง Spinner ตอนเริ่มโหลด (ถ้าเพิ่งเข้ามาหน้าใหม่)
-        if len(activities_list.controls) == 0:
-            activities_list.controls.append(
-                ft.Container(
-                    content=ft.ProgressRing(), alignment=ft.alignment.center, padding=20
-                )
+        # แสดง Spinner ระหว่างโหลด (ทั้งรอบแรกและ refresh)
+        activities_list.controls.clear()
+        activities_list.controls.append(
+            ft.Container(
+                content=ft.ProgressRing(), alignment=ft.alignment.center, padding=20
             )
-            page.update()
+        )
+        page.update()
 
         # 🌟 แก้ไข: เรียกแบบ Async และอเวก
         result = await controller.get_dashboard_data(user_id, user_name)
@@ -60,6 +60,10 @@ def StudentHome(page: ft.Page):
 
             activities_list.controls.clear()
             for act in data.activities:
+                form_type = getattr(act, "form_type", "form1")
+                sub_id = getattr(act, "submission_id", "")
+                target_route = f"/{form_type}/{sub_id}"
+
                 act_item = ft.Container(
                     content=ft.Row(
                         [
@@ -90,10 +94,11 @@ def StudentHome(page: ft.Page):
                             ),
                         ]
                     ),
-                    bgcolor="#FAFAFA",
+                    bgcolor="white",
                     padding=15,
                     border_radius=10,
-                    border=ft.border.all(1, "#E0E0E0"),
+                    border=ft.border.all(1, "#E5E5E5"),
+                    on_click=lambda e, route=target_route: page.go(route),
                 )
                 activities_list.controls.append(act_item)
 
@@ -119,7 +124,7 @@ def StudentHome(page: ft.Page):
         )
     )
 
-    activities_card = BaseCard(content=activities_list)
+    activities_card = BaseCard(content=activities_list, expand=True)
 
     # รันฟังก์ชันโหลดข้อมูลแบบไม่บล็อก UI
     page.run_task(load_data)
@@ -128,21 +133,31 @@ def StudentHome(page: ft.Page):
     main_content = ft.Container(
         content=ft.Column(
             [
-                ft.Text("Home", color="black26", size=16),
-                name_text,
+                ft.Row(
+                    [
+                        name_text,
+                        ft.IconButton(
+                            icon=ft.Icons.REFRESH_ROUNDED,
+                            icon_color="#EF3961",
+                            icon_size=24,
+                            tooltip="รีเฟรชข้อมูล",
+                            on_click=lambda _: page.run_task(load_data),
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
                 error_container,  # วางแจ้งเตือนไว้ใต้ชื่อ
                 ft.Container(height=10),
                 status_card,
                 ft.Container(height=20),
                 ft.Text(
-                    "Lastest Activities",
+                    "Latest Activities",
                     size=20,
                     weight=ft.FontWeight.BOLD,
                     color="black",
                 ),
                 activities_card,
             ],
-            scroll=ft.ScrollMode.AUTO,
             expand=True,
         ),
         padding=ft.padding.only(left=20, right=20, top=50),

@@ -1,35 +1,48 @@
 # src/screens/forms/form2_detail.py
 import flet as ft
-from controllers.form_controller import FormController  # 🌟 ดึง Controller มาใช้งาน
+from controllers.form_controller import FormController
+from core.auth_guard import require_auth
+from core.config import APP_COLORS
+from components.form_helpers import (
+    create_form_row,
+    FormDetailCard,
+    FormDetailAppBar,
+    form_text_value,
+)
 
 
 def FormTwoDetailScreen(page: ft.Page, submission_id: str):
     controller = FormController()
+
+    user_id = require_auth(page)
+    if not user_id:
+        return ft.View(
+            route=f"/form2/{submission_id}",
+            controls=[ft.Text("Redirecting to login...")],
+        )
     user_role = page.session.get("user_role")
 
     # --- 1. เตรียมตัวแปร UI (รอรับข้อมูล) ---
-    student_name_val = ft.Text("Loading...", size=14, color="#333333")
-    student_id_val = ft.Text("Loading...", size=14, color="#333333")
-    degree_val = ft.Text("-", size=14, color="#333333")
-    program_val = ft.Text("-", size=14, color="#333333")
-    dept_val = ft.Text("-", size=14, color="#333333")
+    student_name_val = form_text_value("Loading...")
+    student_id_val = form_text_value("Loading...")
+    degree_val = form_text_value()
+    program_val = form_text_value()
+    dept_val = form_text_value()
 
-    main_advisor_val = ft.Text("Loading...", size=14, color="#333333")
-    co_advisor_val = ft.Text("-", size=14, color="#333333")
-    chair_val = ft.Text("-", size=14, color="#333333")
-    committee_val = ft.Text("-", size=14, color="#333333")
-    member5_val = ft.Text("-", size=14, color="#333333")
-    reserve_ext_val = ft.Text("-", size=14, color="#333333")
-    reserve_int_val = ft.Text("-", size=14, color="#333333")
+    main_advisor_val = form_text_value("Loading...")
+    co_advisor_val = form_text_value()
+    chair_val = form_text_value()
+    committee_val = form_text_value()
+    member5_val = form_text_value()
+    reserve_ext_val = form_text_value()
+    reserve_int_val = form_text_value()
 
-    # --- 2. ฟังก์ชันโหลดข้อมูลที่คลีนสุดๆ ---
-    def load_data():
-        # โยนภาระไปให้ Controller ทำงาน
-        result = controller.get_form2_detail(submission_id)
+    # --- 2. ฟังก์ชันโหลดข้อมูลแบบ Async ---
+    async def load_data(e=None):
+        result = await controller.get_form2_detail(submission_id)
 
         if result["success"]:
             data = result["data"]
-            # เอาข้อมูลที่ Controller จัดเรียงมาให้แล้ว หยอดลง UI เลย
             student_name_val.value = data["student_name"]
             student_id_val.value = data["student_id"]
             degree_val.value = data["degree"]
@@ -49,48 +62,25 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- 3. UI Helper ---
-    def create_row(label, value_control):
-        return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.START,
-            controls=[
-                ft.Container(
-                    width=140, content=ft.Text(label, size=14, color="#888888")
-                ),
-                ft.Container(expand=True, content=value_control),
-            ],
-        )
-
-    # --- 4. Layout ประกอบร่าง ---
-    student_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    # --- 3. Layout ประกอบร่าง ---
+    student_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Text("ข้อมูลนักศึกษา", size=16, weight="bold", color="black"),
+                ft.Text(
+                    "ข้อมูลนักศึกษา", size=16, weight="bold", color=APP_COLORS["black"]
+                ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("ชื่อ-นามสกุล:", student_name_val),
-                create_row("รหัสนักศึกษา:", student_id_val),
-                create_row("ระดับปริญญา:", degree_val),
-                create_row("หลักสูตรและสาขาวิชา:", program_val),
-                create_row("ภาควิชา:", dept_val),
+                create_form_row("ชื่อ-นามสกุล:", student_name_val),
+                create_form_row("รหัสนักศึกษา:", student_id_val),
+                create_form_row("ระดับปริญญา:", degree_val),
+                create_form_row("หลักสูตรและสาขาวิชา:", program_val),
+                create_form_row("ภาควิชา:", dept_val),
             ],
-        ),
+        )
     )
 
-    committee_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    committee_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
@@ -98,43 +88,41 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
                     "อาจารย์ที่ปรึกษาและคณะกรรมการสอบ",
                     size=16,
                     weight="bold",
-                    color="black",
+                    color=APP_COLORS["black"],
                 ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("อาจารย์ที่ปรึกษาหลัก:", main_advisor_val),
-                create_row("อาจารย์ที่ปรึกษาร่วม:", co_advisor_val),
-                ft.Divider(height=20, color="#EEEEEE"),
-                ft.Text("ชื่อคณะกรรมการสอบ", size=15, weight="bold", color="black"),
-                create_row("ประธานกรรมการสอบ:", chair_val),
-                create_row("กรรมการ (ที่ปรึกษาร่วม 2):", committee_val),
-                create_row("กรรมการสอบ (คนที่ 5):", member5_val),
-                ft.Divider(height=20, color="#EEEEEE"),
-                ft.Text("ชื่อคณะกรรมการสำรอง", size=15, weight="bold", color="black"),
-                create_row("กรรมการสำรอง (ภายนอก):", reserve_ext_val),
-                create_row("กรรมการสำรอง (ภายใน):", reserve_int_val),
+                create_form_row("อาจารย์ที่ปรึกษาหลัก:", main_advisor_val),
+                create_form_row("อาจารย์ที่ปรึกษาร่วม:", co_advisor_val),
+                ft.Divider(height=20, color=APP_COLORS["divider"]),
+                ft.Text(
+                    "ชื่อคณะกรรมการสอบ",
+                    size=15,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
+                create_form_row("ประธานกรรมการสอบ:", chair_val),
+                create_form_row("กรรมการ (ที่ปรึกษาร่วม 2):", committee_val),
+                create_form_row("กรรมการสอบ (คนที่ 5):", member5_val),
+                ft.Divider(height=20, color=APP_COLORS["divider"]),
+                ft.Text(
+                    "ชื่อคณะกรรมการสำรอง",
+                    size=15,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
+                create_form_row("กรรมการสำรอง (ภายนอก):", reserve_ext_val),
+                create_form_row("กรรมการสำรอง (ภายใน):", reserve_int_val),
             ],
-        ),
+        )
     )
 
-    load_data()
+    page.run_task(load_data)
 
     return ft.View(
         route=f"/form2/{submission_id}",
-        bgcolor="#FFF5F7",
+        bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
-        appbar=ft.AppBar(
-            leading=ft.IconButton(
-                icon="arrow_back",
-                icon_color="black",
-                on_click=lambda _: page.go(
-                    "/advisor_home" if user_role == "advisor" else "/student_home"
-                ),
-            ),
-            title=ft.Text("KMITL", color="black", weight="bold"),
-            center_title=True,
-            bgcolor="#FFF5F7",
-            elevation=0,
-        ),
+        appbar=FormDetailAppBar(page, user_role),
         controls=[
             ft.Column(
                 controls=[
@@ -144,7 +132,7 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
                             "แบบเสนอหัวข้อและเค้าโครงวิทยานิพนธ์",
                             size=18,
                             weight="bold",
-                            color="black",
+                            color=APP_COLORS["black"],
                             text_align="center",
                         ),
                         alignment=ft.alignment.center,

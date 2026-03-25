@@ -1,37 +1,51 @@
 # src/screens/forms/form4_detail.py
 import flet as ft
 from controllers.form_controller import FormController
+from core.auth_guard import require_auth
+from core.config import APP_COLORS
+from components.form_helpers import (
+    create_form_row,
+    FormDetailCard,
+    FormDetailAppBar,
+    form_text_value,
+)
 
 
 def FormFourDetailScreen(page: ft.Page, submission_id: str):
     controller = FormController()
+
+    user_id = require_auth(page)
+    if not user_id:
+        return ft.View(
+            route=f"/form4/{submission_id}",
+            controls=[ft.Text("Redirecting to login...")],
+        )
     user_role = page.session.get("user_role")
 
     # --- 1. สร้างตัวแปร UI รอรับข้อมูล ---
-    student_name_val = ft.Text("Loading...", size=14, color="#333333")
-    student_id_val = ft.Text("Loading...", size=14, color="#333333")
-    degree_val = ft.Text("-", size=14, color="#333333")
-    program_val = ft.Text("-", size=14, color="#333333")
-    dept_val = ft.Text("-", size=14, color="#333333")
+    student_name_val = form_text_value("Loading...")
+    student_id_val = form_text_value("Loading...")
+    degree_val = form_text_value()
+    program_val = form_text_value()
+    dept_val = form_text_value()
 
-    approve_date_val = ft.Text("-", size=14, color="#333333")
-    title_th_val = ft.Text("-", size=14, color="#333333")
-    title_en_val = ft.Text("-", size=14, color="#333333")
+    approve_date_val = form_text_value()
+    title_th_val = form_text_value()
+    title_en_val = form_text_value()
 
-    expert_title_val = ft.Text("-", size=14, color="#333333")
-    expert_name_val = ft.Text("-", size=14, color="#333333")
-    expert_surname_val = ft.Text("-", size=14, color="#333333")
-    expert_org_val = ft.Text("-", size=14, color="#333333")
-    expert_phone_val = ft.Text("-", size=14, color="#333333")
-    expert_email_val = ft.Text("-", size=14, color="#333333")
+    expert_title_val = form_text_value()
+    expert_name_val = form_text_value()
+    expert_surname_val = form_text_value()
+    expert_org_val = form_text_value()
+    expert_phone_val = form_text_value()
+    expert_email_val = form_text_value()
 
-    # --- 2. ฟังก์ชันดึงข้อมูลจาก Controller ---
-    def load_data():
-        result = controller.get_form4_detail(submission_id)
+    # --- 2. ฟังก์ชันดึงข้อมูลแบบ Async ---
+    async def load_data(e=None):
+        result = await controller.get_form4_detail(submission_id)
 
         if result["success"]:
             data = result["data"]
-            # หยอดข้อมูลลงช่อง UI
             student_name_val.value = data["student_name"]
             student_id_val.value = data["student_id"]
             degree_val.value = data["degree"]
@@ -54,104 +68,70 @@ def FormFourDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- 3. UI Helper ---
-    def create_row(label, value_control):
-        return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.START,
-            controls=[
-                ft.Container(
-                    width=140, content=ft.Text(label, size=14, color="#888888")
-                ),
-                ft.Container(expand=True, content=value_control),
-            ],
-        )
-
-    # --- 4. Layout ประกอบร่าง ---
-    student_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
-        content=ft.Column(
-            spacing=12,
-            controls=[
-                ft.Text("ข้อมูลนักศึกษา", size=16, weight="bold", color="black"),
-                ft.Divider(height=10, color="transparent"),
-                create_row("ชื่อ-นามสกุล:", student_name_val),
-                create_row("รหัสนักศึกษา:", student_id_val),
-                create_row("ระดับปริญญา:", degree_val),
-                create_row("หลักสูตรและสาขาวิชา:", program_val),
-                create_row("ภาควิชา:", dept_val),
-            ],
-        ),
-    )
-
-    thesis_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    # --- 3. Layout ประกอบร่าง ---
+    student_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
                 ft.Text(
-                    "ข้อมูลหัวข้อวิทยานิพนธ์ (ที่ได้อนุมัติ)", size=16, weight="bold", color="black"
+                    "ข้อมูลนักศึกษา", size=16, weight="bold", color=APP_COLORS["black"]
                 ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("วันที่เสนอเค้าโครงได้รับอนุมัติ:", approve_date_val),
-                create_row("ชื่อเรื่อง (TH):", title_th_val),
-                create_row("ชื่อเรื่อง (ENG):", title_en_val),
+                create_form_row("ชื่อ-นามสกุล:", student_name_val),
+                create_form_row("รหัสนักศึกษา:", student_id_val),
+                create_form_row("ระดับปริญญา:", degree_val),
+                create_form_row("หลักสูตรและสาขาวิชา:", program_val),
+                create_form_row("ภาควิชา:", dept_val),
             ],
-        ),
+        )
     )
 
-    expert_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    thesis_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Text("ข้อมูลผู้ทรงคุณวุฒิ คนที่ 1", size=16, weight="bold", color="black"),
+                ft.Text(
+                    "ข้อมูลหัวข้อวิทยานิพนธ์ (ที่ได้อนุมัติ)",
+                    size=16,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("คำนำหน้า/ ยศ(ตำแหน่ง):", expert_title_val),
-                create_row("ชื่อ:", expert_name_val),
-                create_row("นามสกุล:", expert_surname_val),
-                create_row("สถาบัน/หน่วยงาน:", expert_org_val),
-                create_row("เบอร์โทรศัพท์:", expert_phone_val),
-                create_row("อีเมล:", expert_email_val),
+                create_form_row("วันที่เสนอเค้าโครงได้รับอนุมัติ:", approve_date_val),
+                create_form_row("ชื่อเรื่อง (TH):", title_th_val),
+                create_form_row("ชื่อเรื่อง (ENG):", title_en_val),
             ],
-        ),
+        )
     )
 
-    load_data()
+    expert_card = FormDetailCard(
+        content=ft.Column(
+            spacing=12,
+            controls=[
+                ft.Text(
+                    "ข้อมูลผู้ทรงคุณวุฒิ คนที่ 1",
+                    size=16,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
+                ft.Divider(height=10, color="transparent"),
+                create_form_row("คำนำหน้า/ ยศ(ตำแหน่ง):", expert_title_val),
+                create_form_row("ชื่อ:", expert_name_val),
+                create_form_row("นามสกุล:", expert_surname_val),
+                create_form_row("สถาบัน/หน่วยงาน:", expert_org_val),
+                create_form_row("เบอร์โทรศัพท์:", expert_phone_val),
+                create_form_row("อีเมล:", expert_email_val),
+            ],
+        )
+    )
+
+    page.run_task(load_data)
 
     return ft.View(
         route=f"/form4/{submission_id}",
-        bgcolor="#FFF5F7",
+        bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
-        appbar=ft.AppBar(
-            # 🌟 ปุ่ม Back สับรางตาม Role
-            leading=ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                icon_color="black",
-                on_click=lambda _: page.go(
-                    "/advisor_home" if user_role == "advisor" else "/student_home"
-                ),
-            ),
-            title=ft.Text("KMITL", color="black", weight="bold"),
-            center_title=True,
-            bgcolor="#FFF5F7",
-            elevation=0,
-        ),
+        appbar=FormDetailAppBar(page, user_role),
         controls=[
             ft.Column(
                 controls=[
@@ -161,7 +141,7 @@ def FormFourDetailScreen(page: ft.Page, submission_id: str):
                             "แบบขอหนังสือเชิญเป็นผู้ทรงคุณวุฒิ\nตรวจและประเมิน...เพื่อวิจัย",
                             size=18,
                             weight="bold",
-                            color="black",
+                            color=APP_COLORS["black"],
                             text_align="center",
                         ),
                         alignment=ft.alignment.center,

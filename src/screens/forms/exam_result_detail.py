@@ -1,28 +1,43 @@
 # src/screens/forms/exam_result_detail.py
 import flet as ft
 from controllers.form_controller import FormController
+from core.auth_guard import require_auth
+from core.config import APP_COLORS
+from components.form_helpers import (
+    create_form_row,
+    FormDetailCard,
+    FormDetailAppBar,
+    form_text_value,
+)
 
 
 def ExamResultDetailScreen(page: ft.Page, submission_id: str):
     controller = FormController()
+
+    user_id = require_auth(page)
+    if not user_id:
+        return ft.View(
+            route=f"/exam_result/{submission_id}",
+            controls=[ft.Text("Redirecting to login...")],
+        )
     user_role = page.session.get("user_role")
 
     # --- 1. เตรียมตัวแปร UI ---
-    student_name_val = ft.Text("Loading...", size=14, color="#333333")
-    student_id_val = ft.Text("Loading...", size=14, color="#333333")
-    degree_val = ft.Text("-", size=14, color="#333333")
-    program_val = ft.Text("-", size=14, color="#333333")
+    student_name_val = form_text_value("Loading...")
+    student_id_val = form_text_value("Loading...")
+    degree_val = form_text_value()
+    program_val = form_text_value()
 
-    doc_type_val = ft.Text("-", size=14, color="#333333")
-    exam_type_val = ft.Text("-", size=14, color="#333333")
-    exam_date_val = ft.Text("-", size=14, color="#333333")
-    result_val = ft.Text("-", size=14, color="#333333")
+    doc_type_val = form_text_value()
+    exam_type_val = form_text_value()
+    exam_date_val = form_text_value()
+    result_val = form_text_value()
 
     file_list_container = ft.Column(spacing=10)
 
-    # --- 2. ฟังก์ชันดึงข้อมูลจาก Controller ---
-    def load_data():
-        result = controller.get_exam_result_detail(submission_id)
+    # --- 2. ฟังก์ชันดึงข้อมูลแบบ Async ---
+    async def load_data(e=None):
+        result = await controller.get_exam_result_detail(submission_id)
 
         if result["success"]:
             data = result["data"]
@@ -38,7 +53,8 @@ def ExamResultDetailScreen(page: ft.Page, submission_id: str):
 
             # จัดการไฟล์แนบ
             file_list_container.controls.clear()
-            base_url = "https://www.google.com/search?q="
+            # TODO: replace with actual file URL from API
+            base_url = "https://drive.google.com/file/d/1X1PZGikJcvxwvGCbWQLAbs-s01_8XQCB/view?usp=share_link"
 
             if data["files"]:
                 for f in data["files"]:
@@ -53,19 +69,23 @@ def ExamResultDetailScreen(page: ft.Page, submission_id: str):
                         content=ft.Row(
                             [
                                 ft.Icon(
-                                    ft.Icons.INSERT_DRIVE_FILE, color="#5E5CE6", size=30
+                                    ft.Icons.INSERT_DRIVE_FILE,
+                                    color="#5E5CE6",
+                                    size=30,
                                 ),
                                 ft.Column(
                                     [
                                         ft.Text(
                                             file_name,
                                             size=14,
-                                            color="#333333",
+                                            color=APP_COLORS["text_dark"],
                                             weight="bold",
                                             overflow=ft.TextOverflow.ELLIPSIS,
                                         ),
                                         ft.Text(
-                                            "แตะเพื่อเปิดไฟล์ (Mock)", size=12, color="grey"
+                                            "แตะเพื่อเปิดไฟล์ (Mock)",
+                                            size=12,
+                                            color="grey",
                                         ),
                                     ],
                                     spacing=2,
@@ -85,97 +105,57 @@ def ExamResultDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- 3. UI Helper ---
-    def create_row(label, value_control):
-        return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.START,
+    # --- 3. Layout ---
+    student_card = FormDetailCard(
+        content=ft.Column(
+            spacing=12,
             controls=[
-                ft.Container(
-                    width=140, content=ft.Text(label, size=14, color="#888888")
+                ft.Text(
+                    "ข้อมูลนักศึกษา", size=16, weight="bold", color=APP_COLORS["black"]
                 ),
-                ft.Container(expand=True, content=value_control),
+                ft.Divider(height=10, color="transparent"),
+                create_form_row("ชื่อ-นามสกุล:", student_name_val),
+                create_form_row("รหัสนักศึกษา:", student_id_val),
+                create_form_row("ระดับปริญญา:", degree_val),
+                create_form_row("หลักสูตรและสาขาวิชา:", program_val),
             ],
         )
-
-    # --- 4. Layout ---
-    student_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
-        content=ft.Column(
-            spacing=12,
-            controls=[
-                ft.Text("ข้อมูลนักศึกษา", size=16, weight="bold", color="black"),
-                ft.Divider(height=10, color="transparent"),
-                create_row("ชื่อ-นามสกุล:", student_name_val),
-                create_row("รหัสนักศึกษา:", student_id_val),
-                create_row("ระดับปริญญา:", degree_val),
-                create_row("หลักสูตรและสาขาวิชา:", program_val),
-            ],
-        ),
     )
 
-    exam_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    exam_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Text("ข้อมูลผลสอบ", size=16, weight="bold", color="black"),
+                ft.Text("ข้อมูลผลสอบ", size=16, weight="bold", color=APP_COLORS["black"]),
                 ft.Divider(height=10, color="transparent"),
-                create_row("ประเภทเอกสาร:", doc_type_val),
-                create_row("ประเภทการสอบ:", exam_type_val),
-                create_row("วันที่สอบ:", exam_date_val),
-                create_row("ผลสอบ/คะแนน:", result_val),
+                create_form_row("ประเภทเอกสาร:", doc_type_val),
+                create_form_row("ประเภทการสอบ:", exam_type_val),
+                create_form_row("วันที่สอบ:", exam_date_val),
+                create_form_row("ผลสอบ/คะแนน:", result_val),
             ],
-        ),
+        )
     )
 
-    file_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    file_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Text("หลักฐานยื่นสอบ", size=16, weight="bold", color="black"),
+                ft.Text(
+                    "หลักฐานยื่นสอบ", size=16, weight="bold", color=APP_COLORS["black"]
+                ),
                 ft.Divider(height=10, color="transparent"),
                 file_list_container,
             ],
-        ),
+        )
     )
 
-    load_data()
+    page.run_task(load_data)
 
     return ft.View(
         route=f"/exam_result/{submission_id}",
-        bgcolor="#FFF5F7",
+        bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
-        appbar=ft.AppBar(
-            # 🌟 ปุ่ม Back สับรางให้ถูก Role
-            leading=ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                icon_color="black",
-                on_click=lambda _: page.go(
-                    "/advisor_home" if user_role == "advisor" else "/student_home"
-                ),
-            ),
-            title=ft.Text("KMITL", color="black", weight="bold"),
-            center_title=True,
-            bgcolor="#FFF5F7",
-            elevation=0,
-        ),
+        appbar=FormDetailAppBar(page, user_role),
         controls=[
             ft.Column(
                 controls=[
@@ -185,7 +165,7 @@ def ExamResultDetailScreen(page: ft.Page, submission_id: str):
                             "รายละเอียดการยื่นผลสอบ",
                             size=18,
                             weight="bold",
-                            color="black",
+                            color=APP_COLORS["black"],
                             text_align="center",
                         ),
                         alignment=ft.alignment.center,

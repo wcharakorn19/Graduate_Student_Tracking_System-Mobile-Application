@@ -1,26 +1,37 @@
+# src/screens/profile_screen.py
 import flet as ft
 from components.shared_navbar import SharedNavBar
 from components.base_card import BaseCard
 from components.error_banner import ErrorBanner
 
 from controllers.student_controller import StudentController
+from controllers.advisor_controller import AdvisorController
 from models.profile_model import ProfileModel
+from models.advisor_profile_model import AdvisorProfileModel
+from core.auth_guard import require_auth
 
 
 def ProfileScreen(page: ft.Page):
-    controller = StudentController()
-
-    # --- ดึง ID ของ Student ปัจจุบันเป้าหมาย ---
-    user_id = page.session.get("user_id")
+    # --- ดึง Session ---
+    user_id = require_auth(page)
+    if not user_id:
+        return ft.View(
+            route="/profile", controls=[ft.Text("Redirecting to login...")]
+        )
     session_name = page.session.get("user_full_name")
     session_role = page.session.get("user_role")
 
-    # ตัวแปรสำหรับเก็บข้อมูล Profile เพื่อรออัปเดต UI ภายหลัง
-    # ใส่ Default เป็นโหลดดิ้งไว้ก่อน
-    profile = ProfileModel(full_name=session_name or "-", role=session_role or "นักศึกษา")
-    error_container = ft.Column()
+    # 🌟 เลือก Controller ที่ถูกต้องตาม Role
+    is_advisor = session_role == "advisor"
 
-    # UI Components ที่ต้องรอข้อมูลมาอัปเดตจะถูกสร้างไว้ด้านล่าง
+    if is_advisor:
+        controller = AdvisorController()
+        profile = AdvisorProfileModel(full_name=session_name or "-", role="อาจารย์ที่ปรึกษา")
+    else:
+        controller = StudentController()
+        profile = ProfileModel(full_name=session_name or "-", role=session_role or "นักศึกษา")
+
+    error_container = ft.Column()
 
     # ฟังก์ชันสำหรับโหลดข้อมูลแบบ Async
     async def load_data(e=None):
@@ -36,12 +47,11 @@ def ProfileScreen(page: ft.Page):
         )
         page.update()
 
-        # 🌟 เรียกใช้ Controller เพื่อดึงข้อมูล แบบ Async
+        # 🌟 เรียก Controller ตาม Role
         result = await controller.get_profile_data(user_id, session_name, session_role)
 
         if result["success"]:
             profile = result["data"]
-            # อัปเดตกลับไปยัง layout จริงหลังจากโหลดเสร็จ
             build_main_layout()
             page.update()
         else:
@@ -50,9 +60,14 @@ def ProfileScreen(page: ft.Page):
                 ErrorBanner(f"เกิดข้อผิดพลาด: {result.get('message', 'Unknown Error')}")
             )
             # แสดงหน้าแต่ไม่มีข้อมูล พร้อม Error
-            profile = ProfileModel(
-                full_name=session_name or "-", role=session_role or "นักศึกษา"
-            )
+            if is_advisor:
+                profile = AdvisorProfileModel(
+                    full_name=session_name or "-", role="อาจารย์ที่ปรึกษา"
+                )
+            else:
+                profile = ProfileModel(
+                    full_name=session_name or "-", role=session_role or "นักศึกษา"
+                )
             build_main_layout()
             page.update()
 
@@ -63,7 +78,7 @@ def ProfileScreen(page: ft.Page):
                 [
                     ft.Container(
                         content=ft.Icon(icon_name, color="#EF3961", size=20),
-                        bgcolor="#FFF6FE",  # สีชมพูอ่อนมาก
+                        bgcolor="#FFF6FE",
                         padding=12,
                         border_radius=12,
                     ),
@@ -107,11 +122,11 @@ def ProfileScreen(page: ft.Page):
     main_scroll = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, expand=True)
 
     def build_main_layout():
-        # --- 1. ส่วนหัว (Header) สไตล์สวยงาม ---
+        # --- 1. ส่วนหัว (Header) ---
         header = ft.Container(
             content=ft.Column(
                 [
-                    ft.Container(height=30),  # Spacing from top
+                    ft.Container(height=30),
                     ft.Container(
                         content=ft.Icon(
                             ft.Icons.PERSON_OUTLINE, size=45, color="white"
@@ -134,7 +149,6 @@ def ProfileScreen(page: ft.Page):
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            # ใส่สีพื้นหลังแบบ Gradient ชมพู
             gradient=ft.LinearGradient(
                 begin=ft.alignment.top_center,
                 end=ft.alignment.bottom_center,
@@ -145,7 +159,129 @@ def ProfileScreen(page: ft.Page):
             width=float("inf"),
         )
 
-        # --- 2. ส่วนข้อมูลโปรไฟล์ (Info Lists) ---
+        # --- 2. ข้อมูลโปรไฟล์ (แยกตาม Role) ---
+        if is_advisor:
+            content_sections = _build_advisor_sections()
+        else:
+            content_sections = _build_student_sections()
+
+        # --- 3. ปุ่มออกจากระบบ ---
+        def handle_logout(e):
+            page.session.clear()
+            page.go("/login")
+
+        logout_btn = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.LOGOUT, color="#EF3961", size=20),
+                    ft.Text(
+                        "ออกจากระบบ",
+                        color="#EF3961",
+                        size=16,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            border=ft.border.all(1, "#F48FB1"),
+            border_radius=15,
+            padding=15,
+            margin=ft.margin.only(left=20, right=20, top=15, bottom=30),
+            bgcolor="white",
+            on_click=handle_logout,
+        )
+
+        # โหลดเข้า main_scroll
+        main_scroll.controls.clear()
+        main_scroll.controls.extend(
+            [header, error_container]
+            + content_sections
+            + [ft.Container(height=10), logout_btn]
+        )
+
+    # =============================================
+    # 🧑‍🏫 Advisor Profile Sections
+    # =============================================
+    def _build_advisor_sections():
+        personal_list = BaseCard(
+            content=ft.Column(
+                [
+                    create_info_row(
+                        ft.Icons.PERSON_OUTLINE, "ชื่อ-นามสกุล", profile.full_name
+                    ),
+                    create_info_row(
+                        ft.Icons.BADGE_OUTLINED, "รหัสอาจารย์", profile.user_id
+                    ),
+                    create_info_row(
+                        ft.Icons.MAIL_OUTLINE,
+                        "อีเมล",
+                        profile.email,
+                        show_divider=False,
+                    ),
+                ],
+                spacing=0,
+            ),
+            margin=ft.margin.symmetric(horizontal=20),
+            padding=0,
+        )
+
+        position_list = BaseCard(
+            content=ft.Column(
+                [
+                    create_info_row(
+                        ft.Icons.SCHOOL_OUTLINED, "ตำแหน่งวิชาการ", profile.academic_position
+                    ),
+                    create_info_row(
+                        ft.Icons.WORK_OUTLINE, "ประเภทอาจารย์", profile.advisor_type
+                    ),
+                    create_info_row(
+                        ft.Icons.LOCATION_ON_OUTLINED, "สถานที่ทำงาน", profile.workplace
+                    ),
+                    create_info_row(
+                        ft.Icons.PHONE_OUTLINED,
+                        "เบอร์โทรศัพท์",
+                        profile.phone,
+                        show_divider=False,
+                    ),
+                ],
+                spacing=0,
+            ),
+            margin=ft.margin.symmetric(horizontal=20),
+            padding=0,
+        )
+
+        other_list = BaseCard(
+            content=ft.Column(
+                [
+                    create_info_row(
+                        ft.Icons.VERIFIED_USER_OUTLINED, "บทบาทการอนุมัติ", profile.approval_role
+                    ),
+                    create_info_row(
+                        ft.Icons.MENU_BOOK_OUTLINED,
+                        "หลักสูตรที่รับผิดชอบ",
+                        profile.program,
+                        show_divider=False,
+                    ),
+                ],
+                spacing=0,
+            ),
+            margin=ft.margin.symmetric(horizontal=20),
+            padding=0,
+        )
+
+        return [
+            section_title("ข้อมูลส่วนตัวและการติดต่อ"),
+            personal_list,
+            section_title("ตำแหน่งและสถานที่"),
+            position_list,
+            section_title("ข้อมูลด้านอื่น ๆ"),
+            other_list,
+        ]
+
+    # =============================================
+    # 🧑‍🎓 Student Profile Sections (เดิม)
+    # =============================================
+    def _build_student_sections():
         personal_list = BaseCard(
             content=ft.Column(
                 [
@@ -303,48 +439,14 @@ def ProfileScreen(page: ft.Page):
             padding=0,
         )
 
-        # --- 3. ปุ่มออกจากระบบ (Logout Button) ---
-        def handle_logout(e):
-            page.session.clear()
-            page.go("/login")
-
-        logout_btn = ft.Container(
-            content=ft.Row(
-                [
-                    ft.Icon(ft.Icons.LOGOUT, color="#EF3961", size=20),
-                    ft.Text(
-                        "ออกจากระบบ",
-                        color="#EF3961",
-                        size=16,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
-            border=ft.border.all(1, "#F48FB1"),
-            border_radius=15,
-            padding=15,
-            margin=ft.margin.only(left=20, right=20, top=15, bottom=30),
-            bgcolor="white",
-            on_click=handle_logout,
-        )
-
-        # โหลดเข้า main_scroll
-        main_scroll.controls.clear()
-        main_scroll.controls.extend(
-            [
-                header,
-                error_container,
-                section_title("ข้อมูลส่วนตัว"),
-                personal_list,
-                section_title("ข้อมูลวิทยานิพนธ์"),
-                thesis_list,
-                section_title("สรุปผลการดำเนินการ"),
-                progress_list,
-                ft.Container(height=10),
-                logout_btn,
-            ]
-        )
+        return [
+            section_title("ข้อมูลส่วนตัว"),
+            personal_list,
+            section_title("ข้อมูลวิทยานิพนธ์"),
+            thesis_list,
+            section_title("สรุปผลการดำเนินการ"),
+            progress_list,
+        ]
 
     # รัน Async แบบไม่บล็อก UI
     page.run_task(load_data)

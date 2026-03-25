@@ -1,4 +1,5 @@
 # src/core/app_router.py
+import logging
 import flet as ft
 
 from screens.auth.welcome_screen import WelcomeScreen
@@ -15,6 +16,19 @@ from screens.forms.form5_detail import FormFiveDetailScreen
 from screens.forms.form6_detail import FormSixDetailScreen
 from screens.forms.exam_result_detail import ExamResultDetailScreen
 
+logger = logging.getLogger(__name__)
+
+# 🌟 Route mapping: จับคู่ URL prefix กับ Screen function
+FORM_ROUTES = {
+    "/form1/": FormOneDetailScreen,
+    "/form2/": FormTwoDetailScreen,
+    "/form3/": FormThreeDetailScreen,
+    "/form4/": FormFourDetailScreen,
+    "/form5/": FormFiveDetailScreen,
+    "/form6/": FormSixDetailScreen,
+    "/exam_result/": ExamResultDetailScreen,
+}
+
 
 class AppRouter:
     def __init__(self, page: ft.Page):
@@ -24,13 +38,14 @@ class AppRouter:
 
     def route_change(self, route):
         t_route = ft.TemplateRoute(self.page.route)
-        print(f"🚦 Router สับรางไปที่: {self.page.route}")
+        logger.info(f"Router สับรางไปที่: {self.page.route}")
 
         if t_route.match("/"):
             self.page.views.clear()
             self.page.views.append(WelcomeScreen(self.page))
 
         elif t_route.match("/login"):
+            self.page.views.clear()
             self.page.views.append(LoginScreen(self.page))
 
         elif t_route.match("/student_home"):
@@ -45,39 +60,21 @@ class AppRouter:
             self.page.views.clear()
             self.page.views.append(AdvisorHome(self.page))
 
-        # --- โซน Route ของฟอร์มทั้ง 7 ---
-        elif self.page.route.startswith("/form1/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(FormOneDetailScreen(self.page, submission_id))
-
-        elif self.page.route.startswith("/form2/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(FormTwoDetailScreen(self.page, submission_id))
-
-        elif self.page.route.startswith("/form3/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(FormThreeDetailScreen(self.page, submission_id))
-
-        elif self.page.route.startswith("/form4/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(FormFourDetailScreen(self.page, submission_id))
-
-        elif self.page.route.startswith("/form5/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(FormFiveDetailScreen(self.page, submission_id))
-
-        elif self.page.route.startswith("/form6/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(FormSixDetailScreen(self.page, submission_id))
-
-        elif self.page.route.startswith("/exam_result/"):
-            submission_id = self.page.route.split("/")[-1]
-            self.page.views.append(ExamResultDetailScreen(self.page, submission_id))
-
         else:
-            print("❌ หา Route ไม่เจอ! เตะกลับไปหน้า Login")
-            self.page.views.clear()
-            self.page.views.append(LoginScreen(self.page))
+            # 🌟 วน loop เช็ค form routes ทีเดียว แทน elif ซ้ำ 7 blocks
+            matched = False
+            for prefix, screen_fn in FORM_ROUTES.items():
+                if self.page.route.startswith(prefix):
+                    submission_id = self.page.route.split("/")[-1]
+                    self.page.views.clear()
+                    self.page.views.append(screen_fn(self.page, submission_id))
+                    matched = True
+                    break
+
+            if not matched:
+                logger.warning("หา Route ไม่เจอ — redirect กลับไปหน้า Login")
+                self.page.views.clear()
+                self.page.views.append(LoginScreen(self.page))
 
         self.page.update()
 

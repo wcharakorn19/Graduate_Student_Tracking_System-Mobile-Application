@@ -1,7 +1,15 @@
 # src/main.py
+import logging
 import flet as ft
 from core.config import APP_TITLE
 from core.app_router import AppRouter
+
+# ตั้งค่า Logging สำหรับทั้ง Application
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 # Setup App
 def main(page: ft.Page):

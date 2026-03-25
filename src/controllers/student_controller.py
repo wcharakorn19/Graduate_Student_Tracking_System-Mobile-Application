@@ -1,9 +1,12 @@
+import logging
 from services.student_service import StudentService
 from models.document_model import (
     StudentDashboardModel,
     CurrentDocumentModel,
     ActivityModel,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class StudentController:
@@ -39,7 +42,10 @@ class StudentController:
         # 4. จัดเรียงรายการ Activities ทั้งหมด
         activities = [
             ActivityModel(
-                title=doc["name"], status=status_map.get(doc["status"], doc["status"])
+                title=doc["name"],
+                status=status_map.get(doc["status"], doc["status"]),
+                form_type=doc.get("form_type", "form1"),
+                submission_id=doc.get("submission_id", ""),
             )
             for doc in documents
         ]
@@ -65,8 +71,8 @@ class StudentController:
         # 🔒 ตรวจสอบความปลอดภัย: ข้อมูลที่ได้มาต้องเป็น ID ของคนนั้นจริงๆ
         returned_id = student_data.get("id")
         if returned_id and str(returned_id) != str(user_id):
-            print(
-                f"⚠️ [Security] ข้อมูล API ไม่ตรงกับ User ปัจจุบัน (ขอ {user_id} แต่ได้ {returned_id})"
+            logger.warning(
+                f"[Security] ข้อมูล API ไม่ตรงกับ User ปัจจุบัน (ขอ {user_id} แต่ได้ {returned_id})"
             )
             return {"success": False, "message": "ข้อมูลไม่ตรงกับผู้ใช้งานปัจจุบัน"}
 

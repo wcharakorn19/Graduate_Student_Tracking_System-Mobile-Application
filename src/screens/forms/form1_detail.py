@@ -1,31 +1,46 @@
+# src/screens/forms/form1_detail.py
 import flet as ft
-from controllers.form_controller import FormController  # 🌟 ดึง Controller มาใช้
+from controllers.form_controller import FormController
+from core.auth_guard import require_auth
+from core.config import APP_COLORS
+from components.form_helpers import (
+    create_form_row,
+    FormDetailCard,
+    FormDetailAppBar,
+    form_text_value,
+)
 
 
 def FormOneDetailScreen(page: ft.Page, submission_id: str):
     controller = FormController()
+
+    user_id = require_auth(page)
+    if not user_id:
+        return ft.View(
+            route=f"/form1/{submission_id}",
+            controls=[ft.Text("Redirecting to login...")],
+        )
     user_role = page.session.get("user_role")
 
     # UI Components (รอรับข้อมูล)
-    student_name_val = ft.Text("Loading...", size=14, color="#333333")
-    student_id_val = ft.Text("Loading...", size=14, color="#333333")
-    degree_val = ft.Text("-", size=14, color="#333333")
-    program_val = ft.Text("-", size=14, color="#333333")
-    dept_val = ft.Text("-", size=14, color="#333333")
-    faculty_val = ft.Text("-", size=14, color="#333333")
-    plan_val = ft.Text("-", size=14, color="#333333")
-    phone_val = ft.Text("-", size=14, color="#333333")
-    email_val = ft.Text("-", size=14, color="#333333")
-    main_advisor_val = ft.Text("Loading...", size=14, color="#333333")
-    co_advisor_val = ft.Text("-", size=14, color="#333333")
+    student_name_val = form_text_value("Loading...")
+    student_id_val = form_text_value("Loading...")
+    degree_val = form_text_value()
+    program_val = form_text_value()
+    dept_val = form_text_value()
+    faculty_val = form_text_value()
+    plan_val = form_text_value()
+    phone_val = form_text_value()
+    email_val = form_text_value()
+    main_advisor_val = form_text_value("Loading...")
+    co_advisor_val = form_text_value()
 
-    # 🌟 ฟังก์ชันโหลดข้อมูลที่คลีนสุดๆ
-    def load_data():
-        result = controller.get_form1_detail(submission_id)
+    # 🌟 ฟังก์ชันโหลดข้อมูลแบบ Async
+    async def load_data(e=None):
+        result = await controller.get_form1_detail(submission_id)
 
         if result["success"]:
             data = result["data"]
-            # เอาข้อมูลที่ Controller จัดเรียงมาให้แล้ว หยอดลง UI เลย
             student_name_val.value = data["student_name"]
             student_id_val.value = data["student_id"]
             degree_val.value = data["degree"]
@@ -43,83 +58,57 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- UI Helper Function ---
-    def create_row(label, value_control):
-        return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.START,
+    # --- ประกอบร่าง Layout ---
+    student_card = FormDetailCard(
+        content=ft.Column(
+            spacing=12,
             controls=[
-                ft.Container(
-                    width=120, content=ft.Text(label, size=14, color="#888888")
+                ft.Text(
+                    "ข้อมูลนักศึกษา", size=16, weight="bold", color=APP_COLORS["black"]
                 ),
-                ft.Container(expand=True, content=value_control),
+                ft.Divider(height=10, color="transparent"),
+                create_form_row("ชื่อ-นามสกุล:", student_name_val, label_width=120),
+                create_form_row("รหัสนักศึกษา:", student_id_val, label_width=120),
+                create_form_row("ระดับการศึกษา:", degree_val, label_width=120),
+                create_form_row("หลักสูตร:", program_val, label_width=120),
+                create_form_row("ภาควิชา:", dept_val, label_width=120),
+                create_form_row("คณะ:", faculty_val, label_width=120),
+                create_form_row("แผนการเรียน:", plan_val, label_width=120),
+                create_form_row("เบอร์โทรศัพท์:", phone_val, label_width=120),
+                create_form_row("อีเมล:", email_val, label_width=120),
             ],
         )
+    )
 
-    # --- ประกอบร่าง Layout ---
-    student_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    advisor_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Text("ข้อมูลนักศึกษา", size=16, weight="bold", color="black"),
+                ft.Text(
+                    "อาจารย์ที่ปรึกษา",
+                    size=16,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("ชื่อ-นามสกุล:", student_name_val),
-                create_row("รหัสนักศึกษา:", student_id_val),
-                create_row("ระดับการศึกษา:", degree_val),
-                create_row("หลักสูตร:", program_val),
-                create_row("ภาควิชา:", dept_val),
-                create_row("คณะ:", faculty_val),
-                create_row("แผนการเรียน:", plan_val),
-                create_row("เบอร์โทรศัพท์:", phone_val),
-                create_row("อีเมล:", email_val),
+                create_form_row(
+                    "อาจารย์ที่ปรึกษาหลัก:", main_advisor_val, label_width=120
+                ),
+                ft.Divider(height=1, color=APP_COLORS["divider"]),
+                create_form_row(
+                    "อาจารย์ที่ปรึกษาร่วม:", co_advisor_val, label_width=120
+                ),
             ],
-        ),
+        )
     )
 
-    advisor_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
-        content=ft.Column(
-            spacing=12,
-            controls=[
-                ft.Text("อาจารย์ที่ปรึกษา", size=16, weight="bold", color="black"),
-                ft.Divider(height=10, color="transparent"),
-                create_row("อาจารย์ที่ปรึกษาหลัก:", main_advisor_val),
-                ft.Divider(height=1, color="#EEEEEE"),
-                create_row("อาจารย์ที่ปรึกษาร่วม:", co_advisor_val),
-            ],
-        ),
-    )
-
-    load_data()
+    page.run_task(load_data)
 
     return ft.View(
         route=f"/form1/{submission_id}",
-        bgcolor="#FFF5F7",
+        bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
-        appbar=ft.AppBar(
-            leading=ft.IconButton(
-                icon="arrow_back",
-                icon_color="black",
-                on_click=lambda _: page.go(
-                    "/advisor_home" if user_role == "advisor" else "/student_home"
-                ),
-            ),
-            title=ft.Text("KMITL", color="black", weight="bold"),
-            center_title=True,
-            bgcolor="#FFF5F7",
-            elevation=0,
-        ),
+        appbar=FormDetailAppBar(page, user_role),
         controls=[
             ft.Column(
                 controls=[
@@ -129,7 +118,7 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
                             "แบบฟอร์มขอรับรองการเป็นอาจารย์\nที่ปรึกษาวิทยานิพนธ์ หลัก/ร่วม",
                             size=18,
                             weight="bold",
-                            color="black",
+                            color=APP_COLORS["black"],
                             text_align="center",
                         ),
                         alignment=ft.alignment.center,

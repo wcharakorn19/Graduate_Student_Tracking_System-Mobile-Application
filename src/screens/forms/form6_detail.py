@@ -1,39 +1,54 @@
 # src/screens/forms/form6_detail.py
 import flet as ft
 from controllers.form_controller import FormController
+from core.auth_guard import require_auth
+from core.config import APP_COLORS
+from components.form_helpers import (
+    create_form_row,
+    FormDetailCard,
+    FormDetailAppBar,
+    form_text_value,
+)
 
 
 def FormSixDetailScreen(page: ft.Page, submission_id: str):
     controller = FormController()
+
+    user_id = require_auth(page)
+    if not user_id:
+        return ft.View(
+            route=f"/form6/{submission_id}",
+            controls=[ft.Text("Redirecting to login...")],
+        )
     user_role = page.session.get("user_role")
 
     # --- 1. เตรียมตัวแปร UI ---
-    student_name_val = ft.Text("Loading...", size=14, color="#333333")
-    student_id_val = ft.Text("Loading...", size=14, color="#333333")
-    degree_val = ft.Text("-", size=14, color="#333333")
-    program_val = ft.Text("-", size=14, color="#333333")
-    dept_val = ft.Text("-", size=14, color="#333333")
+    student_name_val = form_text_value("Loading...")
+    student_id_val = form_text_value("Loading...")
+    degree_val = form_text_value()
+    program_val = form_text_value()
+    dept_val = form_text_value()
 
-    start_semester_val = ft.Text("-", size=14, color="#333333")
-    start_year_val = ft.Text("-", size=14, color="#333333")
-    phone_val = ft.Text("-", size=14, color="#333333")
-    address_val = ft.Text("-", size=14, color="#333333")
-    workplace_val = ft.Text("-", size=14, color="#333333")
+    start_semester_val = form_text_value()
+    start_year_val = form_text_value()
+    phone_val = form_text_value()
+    address_val = form_text_value()
+    workplace_val = form_text_value()
 
-    thesis_th_val = ft.Text("-", size=14, color="#333333")
-    thesis_en_val = ft.Text("-", size=14, color="#333333")
+    thesis_th_val = form_text_value()
+    thesis_en_val = form_text_value()
 
-    main_advisor_val = ft.Text("-", size=14, color="#333333")
-    co_advisor_val = ft.Text("-", size=14, color="#333333")
-    chair_val = ft.Text("-", size=14, color="#333333")
-    committee_val = ft.Text("-", size=14, color="#333333")
-    member5_val = ft.Text("-", size=14, color="#333333")
-    reserve_ext_val = ft.Text("-", size=14, color="#333333")
-    reserve_int_val = ft.Text("-", size=14, color="#333333")
+    main_advisor_val = form_text_value()
+    co_advisor_val = form_text_value()
+    chair_val = form_text_value()
+    committee_val = form_text_value()
+    member5_val = form_text_value()
+    reserve_ext_val = form_text_value()
+    reserve_int_val = form_text_value()
 
-    # --- 2. ฟังก์ชันดึงข้อมูลจาก Controller ---
-    def load_data():
-        result = controller.get_form6_detail(submission_id)
+    # --- 2. ฟังก์ชันดึงข้อมูลแบบ Async ---
+    async def load_data(e=None):
+        result = await controller.get_form6_detail(submission_id)
 
         if result["success"]:
             data = result["data"]
@@ -65,56 +80,44 @@ def FormSixDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- 3. UI Helper ---
-    def create_row(label, value_control):
-        return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.START,
-            controls=[
-                ft.Container(
-                    width=130, content=ft.Text(label, size=14, color="#888888")
-                ),
-                ft.Container(expand=True, content=value_control),
-            ],
-        )
+    # --- 3. Layout ---
+    lw = 130  # label width สำหรับ form6
 
-    # --- 4. Layout ---
-    info_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    info_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Text("ข้อมูลผู้ยื่นคำร้อง", size=16, weight="bold", color="black"),
+                ft.Text(
+                    "ข้อมูลผู้ยื่นคำร้อง",
+                    size=16,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("ชื่อ-สกุล:", student_name_val),
-                create_row("รหัสประจำตัว:", student_id_val),
-                create_row("ระดับปริญญา:", degree_val),
-                create_row("สาขาวิชา:", program_val),
-                create_row("ภาควิชา:", dept_val),
-                create_row("เริ่มศึกษาภาคเรียนที่:", start_semester_val),
-                create_row("ปีการศึกษา:", start_year_val),
-                create_row("เบอร์โทร:", phone_val),
-                create_row("ที่อยู่ปัจจุบัน:", address_val),
-                create_row("สถานที่ทำงาน:", workplace_val),
-                ft.Divider(height=10, color="#EEEEEE"),
-                create_row("ชื่อวิทยานิพนธ์ (TH):", thesis_th_val),
-                create_row("ชื่อวิทยานิพนธ์ (EN):", thesis_en_val),
+                create_form_row("ชื่อ-สกุล:", student_name_val, label_width=lw),
+                create_form_row("รหัสประจำตัว:", student_id_val, label_width=lw),
+                create_form_row("ระดับปริญญา:", degree_val, label_width=lw),
+                create_form_row("สาขาวิชา:", program_val, label_width=lw),
+                create_form_row("ภาควิชา:", dept_val, label_width=lw),
+                create_form_row(
+                    "เริ่มศึกษาภาคเรียนที่:", start_semester_val, label_width=lw
+                ),
+                create_form_row("ปีการศึกษา:", start_year_val, label_width=lw),
+                create_form_row("เบอร์โทร:", phone_val, label_width=lw),
+                create_form_row("ที่อยู่ปัจจุบัน:", address_val, label_width=lw),
+                create_form_row("สถานที่ทำงาน:", workplace_val, label_width=lw),
+                ft.Divider(height=10, color=APP_COLORS["divider"]),
+                create_form_row(
+                    "ชื่อวิทยานิพนธ์ (TH):", thesis_th_val, label_width=lw
+                ),
+                create_form_row(
+                    "ชื่อวิทยานิพนธ์ (EN):", thesis_en_val, label_width=lw
+                ),
             ],
-        ),
+        )
     )
 
-    committee_card = ft.Container(
-        bgcolor="white",
-        border_radius=20,
-        padding=25,
-        shadow=ft.BoxShadow(
-            spread_radius=0, blur_radius=15, color="#08000000", offset=ft.Offset(0, 4)
-        ),
+    committee_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
             controls=[
@@ -122,44 +125,43 @@ def FormSixDetailScreen(page: ft.Page, submission_id: str):
                     "คณะกรรมการสอบและอาจารย์ที่ปรึกษา",
                     size=16,
                     weight="bold",
-                    color="black",
+                    color=APP_COLORS["black"],
                 ),
                 ft.Divider(height=10, color="transparent"),
-                create_row("ที่ปรึกษาหลัก:", main_advisor_val),
-                create_row("ที่ปรึกษาร่วม 1:", co_advisor_val),
-                ft.Divider(height=20, color="#EEEEEE"),
-                ft.Text("คณะกรรมการสอบ", size=15, weight="bold", color="black"),
-                create_row("ประธานกรรมการสอบ:", chair_val),
-                create_row("กรรมการ (ร่วม 2):", committee_val),
-                create_row("กรรมการสอบ (คนที่ 5):", member5_val),
-                ft.Divider(height=20, color="#EEEEEE"),
-                ft.Text("กรรมการสำรอง", size=15, weight="bold", color="black"),
-                create_row("สำรอง (ภายนอก):", reserve_ext_val),
-                create_row("สำรอง (ภายใน):", reserve_int_val),
+                create_form_row("ที่ปรึกษาหลัก:", main_advisor_val, label_width=lw),
+                create_form_row("ที่ปรึกษาร่วม 1:", co_advisor_val, label_width=lw),
+                ft.Divider(height=20, color=APP_COLORS["divider"]),
+                ft.Text(
+                    "คณะกรรมการสอบ",
+                    size=15,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
+                create_form_row("ประธานกรรมการสอบ:", chair_val, label_width=lw),
+                create_form_row("กรรมการ (ร่วม 2):", committee_val, label_width=lw),
+                create_form_row(
+                    "กรรมการสอบ (คนที่ 5):", member5_val, label_width=lw
+                ),
+                ft.Divider(height=20, color=APP_COLORS["divider"]),
+                ft.Text(
+                    "กรรมการสำรอง",
+                    size=15,
+                    weight="bold",
+                    color=APP_COLORS["black"],
+                ),
+                create_form_row("สำรอง (ภายนอก):", reserve_ext_val, label_width=lw),
+                create_form_row("สำรอง (ภายใน):", reserve_int_val, label_width=lw),
             ],
-        ),
+        )
     )
 
-    load_data()
+    page.run_task(load_data)
 
     return ft.View(
         route=f"/form6/{submission_id}",
-        bgcolor="#FFF5F7",
+        bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
-        appbar=ft.AppBar(
-            # 🌟 ปุ่ม Back สับราง
-            leading=ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                icon_color="black",
-                on_click=lambda _: page.go(
-                    "/advisor_home" if user_role == "advisor" else "/student_home"
-                ),
-            ),
-            title=ft.Text("KMITL", color="black", weight="bold"),
-            center_title=True,
-            bgcolor="#FFF5F7",
-            elevation=0,
-        ),
+        appbar=FormDetailAppBar(page, user_role),
         controls=[
             ft.Column(
                 controls=[
@@ -169,7 +171,7 @@ def FormSixDetailScreen(page: ft.Page, submission_id: str):
                             "บันทึกข้อความ: ขอแต่งตั้งคณะกรรมการ\nสอบวิทยานิพนธ์ขั้นสุดท้าย",
                             size=18,
                             weight="bold",
-                            color="black",
+                            color=APP_COLORS["black"],
                             text_align="center",
                         ),
                         alignment=ft.alignment.center,
