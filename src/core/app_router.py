@@ -6,6 +6,9 @@ from screens.auth.welcome_screen import WelcomeScreen
 from screens.auth.login_screen import LoginScreen
 from screens.student.student_home import StudentHome
 from screens.advisor.advisor_home import AdvisorHome
+from screens.advisor.advisor_activities import AdvisorActivities
+from screens.advisor.contact_staff import ContactStaffScreen
+from screens.advisor.student_profile_view import StudentProfileViewScreen
 from screens.profile_screen import ProfileScreen
 
 from screens.forms.form1_detail import FormOneDetailScreen
@@ -60,21 +63,35 @@ class AppRouter:
             self.page.views.clear()
             self.page.views.append(AdvisorHome(self.page))
 
-        else:
-            # 🌟 วน loop เช็ค form routes ทีเดียว แทน elif ซ้ำ 7 blocks
-            matched = False
-            for prefix, screen_fn in FORM_ROUTES.items():
-                if self.page.route.startswith(prefix):
-                    submission_id = self.page.route.split("/")[-1]
-                    self.page.views.clear()
-                    self.page.views.append(screen_fn(self.page, submission_id))
-                    matched = True
-                    break
+        elif t_route.match("/advisor_activities"):
+            self.page.views.clear()
+            self.page.views.append(AdvisorActivities(self.page))
 
-            if not matched:
-                logger.warning("หา Route ไม่เจอ — redirect กลับไปหน้า Login")
+        elif t_route.match("/contact_staff"):
+            self.page.views.clear()
+            self.page.views.append(ContactStaffScreen(self.page))
+
+        else:
+            # 🌟 เช็ค student_profile route ก่อน
+            if self.page.route.startswith("/student_profile/"):
+                student_id = self.page.route.split("/")[-1]
                 self.page.views.clear()
-                self.page.views.append(LoginScreen(self.page))
+                self.page.views.append(StudentProfileViewScreen(self.page, student_id))
+            else:
+                # วน loop เช็ค form routes ทีเดียว
+                matched = False
+                for prefix, screen_fn in FORM_ROUTES.items():
+                    if self.page.route.startswith(prefix):
+                        submission_id = self.page.route.split("/")[-1]
+                        self.page.views.clear()
+                        self.page.views.append(screen_fn(self.page, submission_id))
+                        matched = True
+                        break
+
+                if not matched:
+                    logger.warning("หา Route ไม่เจอ — redirect กลับไปหน้า Login")
+                    self.page.views.clear()
+                    self.page.views.append(LoginScreen(self.page))
 
         self.page.update()
 

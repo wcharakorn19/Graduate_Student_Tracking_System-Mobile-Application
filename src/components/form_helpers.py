@@ -46,7 +46,7 @@ def FormDetailAppBar(page: ft.Page, user_role: str):
             icon=ft.Icons.ARROW_BACK,
             icon_color=APP_COLORS["black"],
             on_click=lambda _: page.go(
-                "/advisor_home" if user_role == "advisor" else "/student_home"
+                "/advisor_activities" if user_role == "advisor" else "/student_home"
             ),
         ),
         title=ft.Text("KMITL", color=APP_COLORS["black"], weight="bold"),

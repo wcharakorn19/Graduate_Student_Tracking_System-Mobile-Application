@@ -58,11 +58,28 @@ def StudentHome(page: ft.Page):
             status_label_text.value = data.current_doc.status_label
             status_value_text.value = data.current_doc.status_text
 
+            # จำแนกสีสถานะ Status Card
+            status_txt = data.current_doc.status_text
+            if "อนุมัติ" in status_txt:
+                status_value_text.color = "#4CAF50"  # เขียว
+            elif "ปฏิเสธ" in status_txt or "แก้ไข" in status_txt:
+                status_value_text.color = "#F44336"  # แดง
+            else:
+                status_value_text.color = "#FF9800"  # ส้ม (รอดำเนินการ)
+
             activities_list.controls.clear()
             for act in data.activities:
                 form_type = getattr(act, "form_type", "form1")
                 sub_id = getattr(act, "submission_id", "")
                 target_route = f"/{form_type}/{sub_id}"
+
+                # จำแนกสีตามสถานะ
+                if "อนุมัติ" in act.status:
+                    status_color = "#4CAF50"  # เขียว
+                elif "ปฏิเสธ" in act.status or "แก้ไข" in act.status:
+                    status_color = "#F44336"  # แดง
+                else:
+                    status_color = "#FF9800"  # ส้ม (รอดำเนินการ)
 
                 act_item = ft.Container(
                     content=ft.Row(
@@ -86,7 +103,8 @@ def StudentHome(page: ft.Page):
                                     ft.Text(
                                         f"Status : {act.status}",
                                         size=12,
-                                        color="black54",
+                                        color=status_color,
+                                        weight=ft.FontWeight.W_600,
                                     ),
                                 ],
                                 spacing=2,
@@ -136,13 +154,6 @@ def StudentHome(page: ft.Page):
                 ft.Row(
                     [
                         name_text,
-                        ft.IconButton(
-                            icon=ft.Icons.REFRESH_ROUNDED,
-                            icon_color="#EF3961",
-                            icon_size=24,
-                            tooltip="รีเฟรชข้อมูล",
-                            on_click=lambda _: page.run_task(load_data),
-                        ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),

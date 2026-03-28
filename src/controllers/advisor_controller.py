@@ -17,7 +17,11 @@ class AdvisorController:
             return {"success": False, "message": error, "data": None}
 
         students = [
-            StudentSummaryModel(name=s.get("name", "N/A"), doc_status=s.get("doc_status", "-"))
+            StudentSummaryModel(
+                name=s.get("name", "N/A"),
+                doc_status=s.get("doc_status", "-"),
+                student_id=str(s.get("student_id", "")),
+            )
             for s in data.get("students", [])
         ]
 

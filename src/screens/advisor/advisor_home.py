@@ -6,6 +6,7 @@ from components.shared_navbar import SharedNavBar
 from components.base_card import BaseCard
 from components.error_banner import ErrorBanner
 from core.auth_guard import require_auth
+from core.config import APP_COLORS
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,7 @@ def AdvisorHome(page: ft.Page):
     name_text = ft.Text(
         user_full_name, size=24, weight=ft.FontWeight.BOLD, color="black"
     )
-    student_list_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
-    activities_list = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
+    student_list_column = ft.Column(spacing=12, scroll=ft.ScrollMode.AUTO)
     student_count_text = ft.Text(
         "นักศึกษาในความดูแล (กำลังโหลด...)",
         size=16,
@@ -37,20 +37,20 @@ def AdvisorHome(page: ft.Page):
     )
     error_container = ft.Column(spacing=0)
 
-    # --- 3. ฟังก์ชันโหลดข้อมูลแบบ Async (เหมือน student_home) ---
+    # --- 3. ฟังก์ชันโหลดข้อมูลแบบ Async ---
     async def load_data(e=None):
         error_container.controls.clear()
 
-        # แสดง Spinner ระหว่างโหลด (ทั้งรอบแรกและ refresh)
-        activities_list.controls.clear()
-        activities_list.controls.append(
+        # แสดง Spinner ระหว่างโหลด
+        student_list_column.controls.clear()
+        student_list_column.controls.append(
             ft.Container(
                 content=ft.ProgressRing(), alignment=ft.alignment.center, padding=20
             )
         )
         page.update()
 
-        # 🌟 เรียกแบบ Async
+        # เรียกแบบ Async
         result = await controller.get_dashboard_data(user_id)
 
         raw_data = result.get("data")
@@ -58,87 +58,51 @@ def AdvisorHome(page: ft.Page):
 
         if not error and raw_data:
             # 1. อัปเดตจำนวนนักศึกษา
-            student_count_text.value = f"นักศึกษาในความดูแล ({raw_data.student_count} คน)"
+            student_count_text.value = (
+                f"นักศึกษาในความดูแล {raw_data.student_count} คน"
+            )
 
-            # 2. วาดรายชื่อนักศึกษา
+            # 2. วาดรายชื่อนักศึกษา — แต่ละคนเป็นการ์ดแยก
             student_list_column.controls.clear()
             for student in raw_data.students:
+                target_route = f"/student_profile/{student.student_id}"
                 student_list_column.controls.append(
                     ft.Container(
                         content=ft.Row(
                             [
-                                ft.Icon(ft.Icons.ACCOUNT_CIRCLE, color="#EF3961", size=35),
+                                ft.Icon(
+                                    ft.Icons.ACCOUNT_CIRCLE_OUTLINED,
+                                    color=APP_COLORS["primary"],
+                                    size=40,
+                                ),
                                 ft.Column(
                                     [
                                         ft.Text(
                                             student.name,
-                                            size=16,
+                                            size=14,
                                             weight=ft.FontWeight.BOLD,
                                             color="black",
                                         ),
                                         ft.Text(
-                                            student.doc_status,
+                                            f"ตำแหน่ง : {student.doc_status}",
                                             size=12,
                                             color="black54",
-                                        ),
-                                    ],
-                                    spacing=0,
-                                    expand=True,
-                                ),
-                            ]
-                        ),
-                        padding=ft.padding.only(bottom=10),
-                        border=ft.border.only(bottom=ft.border.BorderSide(1, "#F0F0F0")),
-                    )
-                )
-
-            # 3. วาดกิจกรรมล่าสุด
-            activities_list.controls.clear()
-            for act in raw_data.activities:
-                form_type = act.form_type
-                sub_id = act.submission_id
-                target_route = f"/{form_type}/{sub_id}"
-
-                activities_list.controls.append(
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Container(
-                                    content=ft.Icon(
-                                        ft.Icons.FOLDER_OUTLINED, color="black54", size=24
-                                    ),
-                                    bgcolor="#F5F5F5",
-                                    padding=12,
-                                    border_radius=10,
-                                ),
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            act.title,
-                                            size=16,
-                                            color="black",
-                                            weight=ft.FontWeight.BOLD,
-                                        ),
-                                        ft.Text(
-                                            f"Name: {act.name}",
-                                            size=14,
-                                            color="black",
-                                        ),
-                                        ft.Text(
-                                            f"Status: {act.status}",
-                                            size=14,
-                                            color="#EF3961",
                                         ),
                                     ],
                                     spacing=2,
                                     expand=True,
                                 ),
-                            ]
+                            ],
+                            spacing=12,
                         ),
                         bgcolor="white",
-                        padding=15,
-                        border_radius=10,
-                        border=ft.border.all(1, "#E5E5E5"),
+                        padding=ft.padding.symmetric(horizontal=16, vertical=12),
+                        border_radius=12,
+                        shadow=ft.BoxShadow(
+                            blur_radius=8,
+                            color="black08",
+                            offset=ft.Offset(0, 2),
+                        ),
                         on_click=lambda e, route=target_route: page.go(route),
                     )
                 )
@@ -146,7 +110,7 @@ def AdvisorHome(page: ft.Page):
             page.update()
         else:
             # กรณี Error
-            activities_list.controls.clear()
+            student_list_column.controls.clear()
             error_container.controls.append(
                 ErrorBanner(f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {error}")
             )
@@ -157,15 +121,10 @@ def AdvisorHome(page: ft.Page):
         content=ft.Column(
             [
                 student_count_text,
-                ft.Container(height=5),
-                ft.Container(content=student_list_column, height=220),
+                ft.Container(height=8),
+                student_list_column,
             ]
         )
-    )
-
-    activities_card = BaseCard(
-        content=activities_list,
-        expand=True,
     )
 
     # รันฟังก์ชันโหลดข้อมูลแบบไม่บล็อก UI
@@ -173,34 +132,28 @@ def AdvisorHome(page: ft.Page):
 
     return ft.View(
         route="/advisor_home",
-        bgcolor="#FFF6FE",
+        bgcolor=APP_COLORS["background"],
         padding=0,
         controls=[
             ft.Container(
                 content=ft.Column(
                     [
+                        # Header: ชื่อ + ไอคอนโปรไฟล์
                         ft.Row(
                             [
                                 name_text,
                                 ft.IconButton(
-                                    icon=ft.Icons.REFRESH_ROUNDED,
-                                    icon_color="#EF3961",
-                                    icon_size=24,
-                                    tooltip="รีเฟรชข้อมูล",
-                                    on_click=lambda _: page.run_task(load_data),
+                                    icon=ft.Icons.ACCOUNT_CIRCLE_OUTLINED,
+                                    icon_color=APP_COLORS["primary"],
+                                    icon_size=30,
+                                    tooltip="โปรไฟล์",
+                                    on_click=lambda _: page.go("/profile"),
                                 ),
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
                         error_container,
                         students_card,
-                        ft.Text(
-                            "Tasks & Activities",
-                            size=22,
-                            weight=ft.FontWeight.BOLD,
-                            color="black",
-                        ),
-                        activities_card,
                     ],
                     expand=True,
                 ),

@@ -26,6 +26,7 @@ class StudentDashboardModel:
 class StudentSummaryModel:
     name: str
     doc_status: str
+    student_id: str = ""
 
 @dataclass
 class AdvisorDashboardModel:

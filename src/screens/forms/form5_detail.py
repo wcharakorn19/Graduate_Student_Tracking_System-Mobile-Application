@@ -33,30 +33,10 @@ def FormFiveDetailScreen(page: ft.Page, submission_id: str):
     title_th_val = form_text_value()
     title_en_val = form_text_value()
 
-    check_questionnaire = ft.Checkbox(
-        label="แบบสอบถาม",
-        value=False,
-        disabled=True,
-        label_style=ft.TextStyle(color=APP_COLORS["black"]),
-    )
-    check_test = ft.Checkbox(
-        label="แบบทดสอบ",
-        value=False,
-        disabled=True,
-        label_style=ft.TextStyle(color=APP_COLORS["black"]),
-    )
-    check_teaching = ft.Checkbox(
-        label="ทดลองสอน",
-        value=False,
-        disabled=True,
-        label_style=ft.TextStyle(color=APP_COLORS["black"]),
-    )
-    check_other = ft.Checkbox(
-        label="อื่นๆ:",
-        value=False,
-        disabled=True,
-        label_style=ft.TextStyle(color=APP_COLORS["black"]),
-    )
+    check_questionnaire = ft.Checkbox(value=False, disabled=True)
+    check_test = ft.Checkbox(value=False, disabled=True)
+    check_teaching = ft.Checkbox(value=False, disabled=True)
+    check_other = ft.Checkbox(value=False, disabled=True)
     other_detail_val = ft.Text("", size=14, color=APP_COLORS["text_dark"])
 
     # --- 2. ฟังก์ชันดึงข้อมูลแบบ Async ---
@@ -124,7 +104,7 @@ def FormFiveDetailScreen(page: ft.Page, submission_id: str):
 
     permission_card = FormDetailCard(
         content=ft.Column(
-            spacing=5,
+            spacing=8,
             controls=[
                 ft.Text(
                     "รายละเอียดการขออนุญาต",
@@ -133,16 +113,18 @@ def FormFiveDetailScreen(page: ft.Page, submission_id: str):
                     color=APP_COLORS["black"],
                 ),
                 ft.Divider(height=10, color="transparent"),
-                check_questionnaire,
-                check_test,
-                check_teaching,
+                ft.Row([check_questionnaire, ft.Text("แบบสอบถาม", size=14, color="black")], spacing=0),
+                ft.Row([check_test, ft.Text("แบบทดสอบ", size=14, color="black")], spacing=0),
+                ft.Row([check_teaching, ft.Text("ทดลองสอน", size=14, color="black")], spacing=0),
                 ft.Row(
                     [
                         check_other,
+                        ft.Text("อื่นๆ:", size=14, color="black"),
                         ft.Container(
-                            content=other_detail_val, margin=ft.margin.only(top=2)
+                            content=other_detail_val, margin=ft.margin.only(left=5)
                         ),
-                    ]
+                    ],
+                    spacing=0,
                 ),
             ],
         )
