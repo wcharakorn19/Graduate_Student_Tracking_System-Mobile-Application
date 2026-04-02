@@ -1,28 +1,29 @@
-# src/screens/forms/form4_detail.py
+# ==============================================================================
+# src/screens/forms/form4_detail.py — หน้ารายละเอียดฟอร์ม 4
+# ==============================================================================
+# แบบขอหนังสือเชิญเป็นผู้ทรงคุณวุฒิ ตรวจและประเมิน...เพื่อวิจัย
+# ข้อมูลที่แสดง: ข้อมูลนักศึกษา + หัวข้อวิทยานิพนธ์ + ข้อมูลผู้ทรงคุณวุฒิ
+# Route: "/form4/{submission_id}"
+# ==============================================================================
 import flet as ft
 from controllers.form_controller import FormController
 from core.auth_guard import require_auth
 from core.config import APP_COLORS
 from components.form_helpers import (
-    create_form_row,
-    FormDetailCard,
-    FormDetailAppBar,
-    form_text_value,
+    create_form_row, FormDetailCard, FormDetailAppBar, form_text_value,
 )
 
 
 def FormFourDetailScreen(page: ft.Page, submission_id: str):
+    """สร้างหน้าจอรายละเอียด Form 4 (ขอเชิญผู้ทรงคุณวุฒิ)"""
     controller = FormController()
 
     user_id = require_auth(page)
     if not user_id:
-        return ft.View(
-            route=f"/form4/{submission_id}",
-            controls=[ft.Text("Redirecting to login...")],
-        )
+        return ft.View(route=f"/form4/{submission_id}", controls=[ft.Text("Redirecting to login...")])
     user_role = page.session.get("user_role")
 
-    # --- 1. สร้างตัวแปร UI รอรับข้อมูล ---
+    # ── สร้างตัวแปร UI ──
     student_name_val = form_text_value("Loading...")
     student_id_val = form_text_value("Loading...")
     degree_val = form_text_value()
@@ -33,14 +34,15 @@ def FormFourDetailScreen(page: ft.Page, submission_id: str):
     title_th_val = form_text_value()
     title_en_val = form_text_value()
 
-    expert_title_val = form_text_value()
-    expert_name_val = form_text_value()
-    expert_surname_val = form_text_value()
-    expert_org_val = form_text_value()
-    expert_phone_val = form_text_value()
-    expert_email_val = form_text_value()
+    # ตัวแปรสำหรับข้อมูลผู้ทรงคุณวุฒิ
+    expert_title_val = form_text_value()    # คำนำหน้า/ยศ
+    expert_name_val = form_text_value()     # ชื่อ
+    expert_surname_val = form_text_value()  # นามสกุล
+    expert_org_val = form_text_value()      # สถาบัน/หน่วยงาน
+    expert_phone_val = form_text_value()    # เบอร์โทร
+    expert_email_val = form_text_value()    # อีเมล
 
-    # --- 2. ฟังก์ชันดึงข้อมูลแบบ Async ---
+    # ── โหลดข้อมูลแบบ Async ──
     async def load_data(e=None):
         result = await controller.get_form4_detail(submission_id)
 
@@ -68,61 +70,41 @@ def FormFourDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- 3. Layout ประกอบร่าง ---
+    # ── Layout ──
     student_card = FormDetailCard(
-        content=ft.Column(
-            spacing=12,
-            controls=[
-                ft.Text(
-                    "ข้อมูลนักศึกษา", size=16, weight="bold", color=APP_COLORS["black"]
-                ),
-                ft.Divider(height=10, color="transparent"),
-                create_form_row("ชื่อ-นามสกุล:", student_name_val),
-                create_form_row("รหัสนักศึกษา:", student_id_val),
-                create_form_row("ระดับปริญญา:", degree_val),
-                create_form_row("หลักสูตรและสาขาวิชา:", program_val),
-                create_form_row("ภาควิชา:", dept_val),
-            ],
-        )
+        content=ft.Column(spacing=12, controls=[
+            ft.Text("ข้อมูลนักศึกษา", size=16, weight="bold", color=APP_COLORS["black"]),
+            ft.Divider(height=10, color="transparent"),
+            create_form_row("ชื่อ-นามสกุล:", student_name_val),
+            create_form_row("รหัสนักศึกษา:", student_id_val),
+            create_form_row("ระดับปริญญา:", degree_val),
+            create_form_row("หลักสูตรและสาขาวิชา:", program_val),
+            create_form_row("ภาควิชา:", dept_val),
+        ])
     )
 
     thesis_card = FormDetailCard(
-        content=ft.Column(
-            spacing=12,
-            controls=[
-                ft.Text(
-                    "ข้อมูลหัวข้อวิทยานิพนธ์ (ที่ได้อนุมัติ)",
-                    size=16,
-                    weight="bold",
-                    color=APP_COLORS["black"],
-                ),
-                ft.Divider(height=10, color="transparent"),
-                create_form_row("วันที่เสนอเค้าโครงได้รับอนุมัติ:", approve_date_val),
-                create_form_row("ชื่อเรื่อง (TH):", title_th_val),
-                create_form_row("ชื่อเรื่อง (ENG):", title_en_val),
-            ],
-        )
+        content=ft.Column(spacing=12, controls=[
+            ft.Text("ข้อมูลหัวข้อวิทยานิพนธ์ (ที่ได้อนุมัติ)", size=16, weight="bold", color=APP_COLORS["black"]),
+            ft.Divider(height=10, color="transparent"),
+            create_form_row("วันที่เสนอเค้าโครงได้รับอนุมัติ:", approve_date_val),
+            create_form_row("ชื่อเรื่อง (TH):", title_th_val),
+            create_form_row("ชื่อเรื่อง (ENG):", title_en_val),
+        ])
     )
 
+    # การ์ดข้อมูลผู้ทรงคุณวุฒิ (เฉพาะ Form 4)
     expert_card = FormDetailCard(
-        content=ft.Column(
-            spacing=12,
-            controls=[
-                ft.Text(
-                    "ข้อมูลผู้ทรงคุณวุฒิ คนที่ 1",
-                    size=16,
-                    weight="bold",
-                    color=APP_COLORS["black"],
-                ),
-                ft.Divider(height=10, color="transparent"),
-                create_form_row("คำนำหน้า/ ยศ(ตำแหน่ง):", expert_title_val),
-                create_form_row("ชื่อ:", expert_name_val),
-                create_form_row("นามสกุล:", expert_surname_val),
-                create_form_row("สถาบัน/หน่วยงาน:", expert_org_val),
-                create_form_row("เบอร์โทรศัพท์:", expert_phone_val),
-                create_form_row("อีเมล:", expert_email_val),
-            ],
-        )
+        content=ft.Column(spacing=12, controls=[
+            ft.Text("ข้อมูลผู้ทรงคุณวุฒิ คนที่ 1", size=16, weight="bold", color=APP_COLORS["black"]),
+            ft.Divider(height=10, color="transparent"),
+            create_form_row("คำนำหน้า/ ยศ(ตำแหน่ง):", expert_title_val),
+            create_form_row("ชื่อ:", expert_name_val),
+            create_form_row("นามสกุล:", expert_surname_val),
+            create_form_row("สถาบัน/หน่วยงาน:", expert_org_val),
+            create_form_row("เบอร์โทรศัพท์:", expert_phone_val),
+            create_form_row("อีเมล:", expert_email_val),
+        ])
     )
 
     page.run_task(load_data)
@@ -132,27 +114,12 @@ def FormFourDetailScreen(page: ft.Page, submission_id: str):
         bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
         appbar=FormDetailAppBar(page, user_role),
-        controls=[
-            ft.Column(
-                controls=[
-                    ft.Container(
-                        padding=ft.padding.only(left=20, right=20, bottom=10, top=20),
-                        content=ft.Text(
-                            "แบบขอหนังสือเชิญเป็นผู้ทรงคุณวุฒิ\nตรวจและประเมิน...เพื่อวิจัย",
-                            size=18,
-                            weight="bold",
-                            color=APP_COLORS["black"],
-                            text_align="center",
-                        ),
-                        alignment=ft.alignment.center,
-                    ),
-                    student_card,
-                    ft.Container(padding=5),
-                    thesis_card,
-                    ft.Container(padding=5),
-                    expert_card,
-                    ft.Container(padding=20),
-                ]
-            )
-        ],
+        controls=[ft.Column(controls=[
+            ft.Container(
+                padding=ft.padding.only(left=20, right=20, bottom=10, top=20),
+                content=ft.Text("แบบขอหนังสือเชิญเป็นผู้ทรงคุณวุฒิ\nตรวจและประเมิน...เพื่อวิจัย", size=18, weight="bold", color=APP_COLORS["black"], text_align="center"),
+                alignment=ft.alignment.center,
+            ),
+            student_card, ft.Container(padding=5), thesis_card, ft.Container(padding=5), expert_card, ft.Container(padding=20),
+        ])],
     )

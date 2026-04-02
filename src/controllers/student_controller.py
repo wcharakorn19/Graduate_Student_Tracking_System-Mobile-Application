@@ -1,33 +1,58 @@
+# ==============================================================================
+# src/controllers/student_controller.py — Controller สำหรับจัดการข้อมูลนักศึกษา
+# ==============================================================================
+# ไฟล์นี้ทำหน้าที่เป็น "สะพาน" ระหว่างหน้าจอกับ StudentService
+# หน้าที่หลัก:
+#   1. get_dashboard_data() → ดึงข้อมูล Dashboard และแปลงเป็น Model
+#   2. get_profile_data()   → ดึงข้อมูลโปรไฟล์และแปลงเป็น Model
+#
+# รับ Raw JSON จาก Service → แปลงสถานะเป็นภาษาไทย → สร้าง Data Model → คืนค่า
+# ==============================================================================
 import logging
 from services.student_service import StudentService
 from models.document_model import (
-    StudentDashboardModel,
-    CurrentDocumentModel,
-    ActivityModel,
+    StudentDashboardModel,  # โมเดล Dashboard ของนักศึกษา
+    CurrentDocumentModel,   # โมเดลเอกสารปัจจุบัน (Status Card)
+    ActivityModel,          # โมเดลกิจกรรมแต่ละรายการ
 )
 
 logger = logging.getLogger(__name__)
 
 
 class StudentController:
+    """Controller สำหรับจัดการข้อมูลนักศึกษาทั้ง Dashboard และ Profile"""
+
     def __init__(self):
+        # สร้าง instance ของ StudentService เพื่อใช้เรียก API
         self.service = StudentService()
 
     async def get_dashboard_data(self, user_id, user_name_from_session):
-        # 1. สั่งแมสเซนเจอร์ไปดึงข้อมูล JSON ของจริงมา
+        """
+        ดึงข้อมูล Dashboard ของนักศึกษา แล้วแปลงเป็น StudentDashboardModel
+
+        ขั้นตอน:
+        1. เรียก Service เพื่อ fetch data จาก API
+        2. แปลสถานะจากอังกฤษเป็นไทย (pending → รอดำเนินการ)
+        3. หาเอกสารที่กำลัง "รอดำเนินการ" มาแสดงเป็น Status Card
+        4. สร้าง list ของ ActivityModel จากทุกเอกสาร
+        5. ประกอบทุกอย่างเป็น StudentDashboardModel แล้วคืนค่า
+        """
+        # ─── ขั้นตอนที่ 1: สั่ง Service ไปดึงข้อมูล JSON จาก API ───
         data, error = await self.service.fetch_home_data(user_id)
 
         if error:
             return {"success": False, "message": error}
 
-        # 2. เตรียมพจนานุกรมแปลสถานะ (ดึงจาก API มาแปลเป็นไทยให้ UI สวยๆ)
+        # ─── ขั้นตอนที่ 2: พจนานุกรมแปลสถานะ (อังกฤษ → ไทย) ───
+        # API ส่งสถานะเป็นภาษาอังกฤษ เช่น "pending", "approved"
+        # แปลเป็นภาษาไทยเพื่อแสดงผลบน UI
         status_map = {
             "pending": "รอดำเนินการ",
             "approved": "อนุมัติเรียบร้อย",
             "rejected": "ถูกปฏิเสธ แก้ไขด่วน",
         }
 
-        # 3. หางานที่กำลัง "รอดำเนินการ" มาโชว์เป็นการ์ดหลักด้านบน (Status Card)
+        # ─── ขั้นตอนที่ 3: หาเอกสารที่สถานะ "pending" มาแสดงบน Status Card ───
         documents = data.get("documents", [])
         active_doc = CurrentDocumentModel(
             doc_name="-", status_label="สถานะ :", status_text="-"
@@ -35,40 +60,54 @@ class StudentController:
 
         for doc in documents:
             if doc["status"] == "pending":
+                # เจอเอกสารแรกที่กำลัง "รอดำเนินการ" → ใช้เอกสารนี้แสดง
                 active_doc.doc_name = doc["name"]
                 active_doc.status_text = status_map.get(doc["status"], doc["status"])
-                break
+                break  # ใช้เอกสารแรกที่เจอเท่านั้น
 
-        # 4. จัดเรียงรายการ Activities ทั้งหมด
+        # ─── ขั้นตอนที่ 4: สร้างรายการ Activities จากเอกสารทั้งหมด ───
+        # ใช้ List Comprehension สร้าง ActivityModel จากทุกเอกสาร
         activities = [
             ActivityModel(
-                title=doc["name"],
-                status=status_map.get(doc["status"], doc["status"]),
-                form_type=doc.get("form_type", "form1"),
-                submission_id=doc.get("submission_id", ""),
+                title=doc["name"],                                      # ชื่อเอกสาร
+                status=status_map.get(doc["status"], doc["status"]),    # สถานะ (แปลแล้ว)
+                form_type=doc.get("form_type", "form1"),               # ประเภทฟอร์ม
+                submission_id=doc.get("submission_id", ""),             # รหัสเอกสาร
             )
             for doc in documents
         ]
 
-        # 5. ประกอบร่างข้อมูลเป็น Data Model ส่งให้หน้าจอ
+        # ─── ขั้นตอนที่ 5: ประกอบร่างเป็น Data Model แล้วส่งกลับ ───
         model = StudentDashboardModel(
-            user_name=user_name_from_session,
-            current_doc=active_doc,
-            activities=activities,
+            user_name=user_name_from_session,    # ชื่อจาก Session
+            current_doc=active_doc,              # เอกสารที่กำลังดำเนินการ
+            activities=activities,               # รายการกิจกรรมทั้งหมด
         )
 
         return {"success": True, "data": model}
 
     async def get_profile_data(self, user_id, session_name, session_role):
+        """
+        ดึงข้อมูลโปรไฟล์ของนักศึกษา แล้วแปลงเป็น ProfileModel
+
+        ขั้นตอน:
+        1. เรียก Service เพื่อ fetch data จาก API
+        2. ตรวจสอบความปลอดภัย (ข้อมูลที่ได้ต้องตรงกับ user ปัจจุบัน)
+        3. แปลง JSON → ThesisModel, ProgressModel, ProfileModel
+        4. คืนค่า ProfileModel ที่พร้อมใช้แสดงผล
+        """
         from models.profile_model import ProfileModel, ThesisModel, ProgressModel
 
+        # ─── ขั้นตอนที่ 1: ดึงข้อมูลจาก API ───
         data, error = await self.service.fetch_profile_data(user_id)
         if error:
             return {"success": False, "message": error}
 
         student_data = data.get("student", {})
 
-        # 🔒 ตรวจสอบความปลอดภัย: ข้อมูลที่ได้มาต้องเป็น ID ของคนนั้นจริงๆ
+        # ─── ขั้นตอนที่ 2: ตรวจสอบความปลอดภัย ───
+        # ข้อมูลที่ API ส่งกลับมาต้องเป็น ID ของ user ที่ login อยู่จริงๆ
+        # ป้องกันกรณี API ส่งข้อมูลของคนอื่นมา (Security Check)
         returned_id = student_data.get("id")
         if returned_id and str(returned_id) != str(user_id):
             logger.warning(
@@ -76,7 +115,9 @@ class StudentController:
             )
             return {"success": False, "message": "ข้อมูลไม่ตรงกับผู้ใช้งานปัจจุบัน"}
 
-        # จับคู่ข้อมูลวิทยานิพนธ์
+        # ─── ขั้นตอนที่ 3: แปลง JSON เป็น Data Models ───
+
+        # จับคู่ข้อมูลวิทยานิพนธ์ → ThesisModel
         thesis_raw = student_data.get("thesis", {})
         thesis_model = ThesisModel(
             title_th=thesis_raw.get("title_th", "-"),
@@ -86,7 +127,7 @@ class StudentController:
             co_advisor_2=thesis_raw.get("co_advisor_2", "-"),
         )
 
-        # จับคู่ข้อมูลความคืบหน้า
+        # จับคู่ข้อมูลความคืบหน้า → ProgressModel
         progress_raw = student_data.get("progress", {})
         progress_model = ProgressModel(
             topic_exam_date=progress_raw.get("topic_exam_date", "-"),
@@ -100,7 +141,7 @@ class StudentController:
             english_test_status=progress_raw.get("english_test_status", "-"),
         )
 
-        # ประกอบร่าง
+        # ─── ขั้นตอนที่ 4: ประกอบร่างเป็น ProfileModel ───
         profile_model = ProfileModel(
             user_id=str(user_id) if user_id else "-",
             full_name=student_data.get("name", session_name or "-"),

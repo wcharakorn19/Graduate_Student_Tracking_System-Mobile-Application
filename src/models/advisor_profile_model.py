@@ -1,16 +1,27 @@
-# src/models/advisor_profile_model.py
+# ==============================================================================
+# src/models/advisor_profile_model.py — Data Model สำหรับโปรไฟล์อาจารย์ที่ปรึกษา
+# ==============================================================================
+# ไฟล์นี้กำหนดโครงสร้างข้อมูลของโปรไฟล์อาจารย์ที่ปรึกษา
+# ใช้ @dataclass เพื่อสร้าง class อย่างกระชับ
+# แยกจาก ProfileModel (ของนักศึกษา) เพราะมี field ที่แตกต่างกัน
+# เช่น อาจารย์มี academic_position, advisor_type แทน thesis, progress
+# ==============================================================================
 from dataclasses import dataclass
 
 
 @dataclass
 class AdvisorProfileModel:
-    user_id: str = "-"
-    full_name: str = "-"
-    role: str = "advisor"
-    email: str = "-"
-    phone: str = "-"
-    academic_position: str = "-"
-    advisor_type: str = "-"
-    workplace: str = "-"
-    approval_role: str = "-"
-    program: str = "-"
+    """
+    โมเดลข้อมูลโปรไฟล์อาจารย์ที่ปรึกษา
+    ค่า default เป็น "-" เผื่อ API ไม่ส่งข้อมูลมาบางฟิลด์
+    """
+    user_id: str = "-"              # รหัสอาจารย์
+    full_name: str = "-"            # ชื่อ-นามสกุล
+    role: str = "advisor"           # บทบาท (ค่า default: "advisor")
+    email: str = "-"                # อีเมล
+    phone: str = "-"                # เบอร์โทรศัพท์
+    academic_position: str = "-"    # ตำแหน่งวิชาการ (เช่น ผศ.ดร., รศ.ดร.)
+    advisor_type: str = "-"         # ประเภทอาจารย์ (เช่น อาจารย์ประจำ)
+    workplace: str = "-"            # สถานที่ทำงาน
+    approval_role: str = "-"        # บทบาทการอนุมัติ (เช่น ประธานหลักสูตร)
+    program: str = "-"              # หลักสูตรที่รับผิดชอบ

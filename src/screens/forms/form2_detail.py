@@ -1,4 +1,11 @@
-# src/screens/forms/form2_detail.py
+# ==============================================================================
+# src/screens/forms/form2_detail.py — หน้ารายละเอียดฟอร์ม 2
+# ==============================================================================
+# แบบเสนอหัวข้อและเค้าโครงวิทยานิพนธ์
+# ข้อมูลที่แสดง: ข้อมูลนักศึกษา + อาจารย์ที่ปรึกษา + คณะกรรมการสอบ + กรรมการสำรอง
+# โครงสร้างเหมือน Form 1 (Auth Guard → สร้าง UI → Async Load → Update)
+# Route: "/form2/{submission_id}"
+# ==============================================================================
 import flet as ft
 from controllers.form_controller import FormController
 from core.auth_guard import require_auth
@@ -12,8 +19,10 @@ from components.form_helpers import (
 
 
 def FormTwoDetailScreen(page: ft.Page, submission_id: str):
+    """สร้างหน้าจอรายละเอียด Form 2 (เสนอหัวข้อวิทยานิพนธ์)"""
     controller = FormController()
 
+    # Auth Guard
     user_id = require_auth(page)
     if not user_id:
         return ft.View(
@@ -22,22 +31,23 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
         )
     user_role = page.session.get("user_role")
 
-    # --- 1. เตรียมตัวแปร UI (รอรับข้อมูล) ---
+    # ── สร้างตัวแปร UI รอรับข้อมูล ──
     student_name_val = form_text_value("Loading...")
     student_id_val = form_text_value("Loading...")
     degree_val = form_text_value()
     program_val = form_text_value()
     dept_val = form_text_value()
 
+    # ตัวแปรสำหรับอาจารย์ที่ปรึกษาและคณะกรรมการสอบ
     main_advisor_val = form_text_value("Loading...")
     co_advisor_val = form_text_value()
-    chair_val = form_text_value()
-    committee_val = form_text_value()
-    member5_val = form_text_value()
-    reserve_ext_val = form_text_value()
-    reserve_int_val = form_text_value()
+    chair_val = form_text_value()           # ประธานกรรมการสอบ
+    committee_val = form_text_value()       # กรรมการ (ที่ปรึกษาร่วม 2)
+    member5_val = form_text_value()         # กรรมการสอบ คนที่ 5
+    reserve_ext_val = form_text_value()     # กรรมการสำรอง (ภายนอก)
+    reserve_int_val = form_text_value()     # กรรมการสำรอง (ภายใน)
 
-    # --- 2. ฟังก์ชันโหลดข้อมูลแบบ Async ---
+    # ── ฟังก์ชันโหลดข้อมูลแบบ Async ──
     async def load_data(e=None):
         result = await controller.get_form2_detail(submission_id)
 
@@ -62,7 +72,9 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
 
         page.update()
 
-    # --- 3. Layout ประกอบร่าง ---
+    # ── ประกอบร่าง Layout ──
+
+    # การ์ดข้อมูลนักศึกษา
     student_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
@@ -80,6 +92,7 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
         )
     )
 
+    # การ์ดอาจารย์ที่ปรึกษาและคณะกรรมการสอบ
     committee_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
@@ -94,6 +107,7 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
                 create_form_row("อาจารย์ที่ปรึกษาหลัก:", main_advisor_val),
                 create_form_row("อาจารย์ที่ปรึกษาร่วม:", co_advisor_val),
                 ft.Divider(height=20, color=APP_COLORS["divider"]),
+                # ส่วนคณะกรรมการสอบ
                 ft.Text(
                     "ชื่อคณะกรรมการสอบ",
                     size=15,
@@ -104,6 +118,7 @@ def FormTwoDetailScreen(page: ft.Page, submission_id: str):
                 create_form_row("กรรมการ (ที่ปรึกษาร่วม 2):", committee_val),
                 create_form_row("กรรมการสอบ (คนที่ 5):", member5_val),
                 ft.Divider(height=20, color=APP_COLORS["divider"]),
+                # ส่วนกรรมการสำรอง
                 ft.Text(
                     "ชื่อคณะกรรมการสำรอง",
                     size=15,

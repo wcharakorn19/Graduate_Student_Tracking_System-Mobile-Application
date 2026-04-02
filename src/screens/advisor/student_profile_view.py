@@ -1,4 +1,15 @@
-# src/screens/advisor/student_profile_view.py
+# ==============================================================================
+# src/screens/advisor/student_profile_view.py — หน้าดูโปรไฟล์นักศึกษา (สำหรับอาจารย์)
+# ==============================================================================
+# หน้าจอนี้ให้อาจารย์ที่ปรึกษาดูรายละเอียด Profile ของนักศึกษาในความดูแล
+# แสดงข้อมูล 3 ส่วน:
+#   1. ข้อมูลส่วนตัว (ชื่อ, รหัส, คณะ, สาขา, สถานะ, อีเมล, เบอร์โทร)
+#   2. ข้อมูลวิทยานิพนธ์ (ชื่อเรื่อง TH/EN, อาจารย์ที่ปรึกษา)
+#   3. สรุปผลการดำเนินการ (สอบหัวข้อ, สอบสุดท้าย, สอบภาษาอังกฤษ)
+#
+# รับ student_id จาก URL Parameter → ใช้ StudentController ดึงข้อมูล
+# Route: "/student_profile/{student_id}"
+# ==============================================================================
 """หน้าดูรายละเอียด Profile ของนักศึกษา (สำหรับ Advisor เข้าดู)"""
 import logging
 import flet as ft
@@ -13,7 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 def StudentProfileViewScreen(page: ft.Page, student_id: str):
-    # Auth guard — ต้อง login ก่อนถึงจะดูได้
+    """
+    สร้างหน้าจอดูโปรไฟล์นักศึกษา (เข้าถึงจากหน้าหลักอาจารย์)
+
+    Parameters:
+        page (ft.Page)     — หน้าแอป
+        student_id (str)   — รหัสนักศึกษาที่ต้องการดู (จาก URL parameter)
+    """
+    # ── Auth Guard: ต้อง Login ก่อนถึงจะดูได้ ──
     user_id = require_auth(page)
     if not user_id:
         return ft.View(
@@ -22,21 +40,28 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
         )
 
     controller = StudentController()
-    profile = ProfileModel(full_name="กำลังโหลด...")
+    profile = ProfileModel(full_name="กำลังโหลด...")    # ค่าเริ่มต้นระหว่างโหลด
     error_container = ft.Column()
     main_scroll = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, expand=True)
 
-    # --- ฟังก์ชันช่วยสร้าง UI ---
+    # ── ฟังก์ชันช่วยสร้าง UI ──
+
     def create_info_row(icon_name, label, value, show_divider=True):
+        """
+        สร้างแถวข้อมูลแบบ: [ไอคอน] [label] [value]
+        พร้อมเส้นแบ่งด้านล่าง (optional)
+        """
         row = ft.Container(
             content=ft.Row(
                 [
+                    # ไอคอนด้านซ้าย (พื้นหลังชมพูอ่อน)
                     ft.Container(
                         content=ft.Icon(icon_name, color=APP_COLORS["primary"], size=20),
                         bgcolor=APP_COLORS["background"],
                         padding=12,
                         border_radius=12,
                     ),
+                    # label + value เรียงแนวตั้ง
                     ft.Column(
                         [
                             ft.Text(
@@ -65,16 +90,19 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
         return row
 
     def section_title(title):
+        """สร้างหัวข้อ Section (สีชมพูแดง)"""
         return ft.Container(
             content=ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=APP_COLORS["primary"]),
             padding=ft.padding.only(left=25, top=20, bottom=10),
         )
 
-    # --- โหลดข้อมูล ---
+    # ── ฟังก์ชันโหลดข้อมูลแบบ Async ──
     async def load_data(e=None):
+        """โหลดข้อมูลโปรไฟล์นักศึกษาจาก API"""
         nonlocal profile
         error_container.controls.clear()
 
+        # แสดง Spinner ระหว่างโหลด
         main_scroll.controls.clear()
         main_scroll.controls.append(
             ft.Container(
@@ -83,12 +111,12 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
         )
         page.update()
 
-        # ใช้ StudentController เพื่อดึง profile ของ student_id
+        # ใช้ StudentController เพื่อดึง profile ของ student_id ที่ส่งมา
         result = await controller.get_profile_data(student_id, None, "student")
 
         if result["success"]:
             profile = result["data"]
-            build_layout()
+            build_layout()      # สร้าง UI จากข้อมูลที่ได้
             page.update()
         else:
             main_scroll.controls.clear()
@@ -99,12 +127,14 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
             page.update()
 
     def build_layout():
-        # --- Header ---
+        """สร้าง Layout ทั้งหน้าจากข้อมูล Profile ที่โหลดมาได้"""
+
+        # ── ส่วนที่ 1: Header (ไล่สี Gradient) ──
         header = ft.Container(
             content=ft.Column(
                 [
                     ft.Container(height=10),
-                    # ปุ่มกลับ
+                    # ปุ่มกลับ (ย้อนไปหน้า advisor_home)
                     ft.Row(
                         [
                             ft.IconButton(
@@ -115,6 +145,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
                             ),
                         ],
                     ),
+                    # ไอคอนโปรไฟล์ (วงกลมขาว)
                     ft.Container(
                         content=ft.Icon(
                             ft.Icons.PERSON_OUTLINE, size=45, color="white"
@@ -126,6 +157,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
                         alignment=ft.alignment.center,
                     ),
                     ft.Container(height=10),
+                    # ชื่อ + บทบาท
                     ft.Text(
                         profile.full_name,
                         size=22,
@@ -137,6 +169,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
+            # ไล่สีจากบนลงล่าง (Gradient)
             gradient=ft.LinearGradient(
                 begin=ft.alignment.top_center,
                 end=ft.alignment.bottom_center,
@@ -147,7 +180,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
             width=float("inf"),
         )
 
-        # --- ข้อมูลส่วนตัว ---
+        # ── ส่วนที่ 2: การ์ดข้อมูลส่วนตัว ──
         personal_list = BaseCard(
             content=ft.Column(
                 [
@@ -172,7 +205,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
             padding=0,
         )
 
-        # --- ข้อมูลวิทยานิพนธ์ ---
+        # ── ส่วนที่ 3: การ์ดข้อมูลวิทยานิพนธ์ ──
         thesis_list = BaseCard(
             content=ft.Column(
                 [
@@ -191,10 +224,11 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
             padding=0,
         )
 
-        # --- สรุปผลการดำเนินการ ---
+        # ── ส่วนที่ 4: การ์ดสรุปผลการดำเนินการ ──
         progress_list = BaseCard(
             content=ft.Column(
                 [
+                    # === การสอบหัวข้อและเค้าโครง ===
                     ft.Container(
                         content=ft.Text("การสอบหัวข้อและเค้าโครง", size=14, weight=ft.FontWeight.BOLD, color="black87"),
                         padding=ft.padding.only(left=20, top=15, bottom=5),
@@ -203,6 +237,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
                     create_info_row(ft.Icons.EVENT_OUTLINED, "วันที่สอบหัวข้อ", profile.progress.topic_exam_date),
                     create_info_row(ft.Icons.ASSIGNMENT_OUTLINED, "สถานะสอบหัวข้อ", profile.progress.topic_status),
                     create_info_row(ft.Icons.EVENT_AVAILABLE_OUTLINED, "วันที่อนุมัติหัวข้อ", profile.progress.topic_approve_date),
+                    # === การสอบวิทยานิพนธ์ขั้นสุดท้าย ===
                     ft.Container(
                         content=ft.Text("การสอบวิทยานิพนธ์ขั้นสุดท้าย", size=14, weight=ft.FontWeight.BOLD, color="black87"),
                         padding=ft.padding.only(left=20, top=15, bottom=5),
@@ -211,6 +246,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
                     create_info_row(ft.Icons.EVENT_OUTLINED, "วันที่สอบขั้นสุดท้าย", profile.progress.final_exam_date),
                     create_info_row(ft.Icons.ASSIGNMENT_TURNED_IN_OUTLINED, "สถานะสอบขั้นสุดท้าย", profile.progress.final_status),
                     create_info_row(ft.Icons.EVENT_AVAILABLE_OUTLINED, "วันที่สำเร็จการศึกษา", profile.progress.final_approve_date),
+                    # === ผลการสอบภาษาอังกฤษ ===
                     ft.Container(
                         content=ft.Text("ผลการสอบภาษาอังกฤษ ป.โท", size=14, weight=ft.FontWeight.BOLD, color="black87"),
                         padding=ft.padding.only(left=20, top=15, bottom=5),
@@ -229,6 +265,7 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
             padding=0,
         )
 
+        # ── ประกอบร่างทุก Section เข้าด้วยกัน ──
         main_scroll.controls.clear()
         main_scroll.controls.extend([
             header,
@@ -239,12 +276,13 @@ def StudentProfileViewScreen(page: ft.Page, student_id: str):
             thesis_list,
             section_title("สรุปผลการดำเนินการ"),
             progress_list,
-            ft.Container(height=30),
+            ft.Container(height=30),        # ระยะห่างด้านล่าง
         ])
 
-    # รัน Async
+    # รัน Async load
     page.run_task(load_data)
 
+    # คืนค่า View
     return ft.View(
         route=f"/student_profile/{student_id}",
         bgcolor=APP_COLORS["background"],

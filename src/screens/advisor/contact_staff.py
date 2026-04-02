@@ -1,4 +1,12 @@
-# src/screens/advisor/contact_staff.py
+# ==============================================================================
+# src/screens/advisor/contact_staff.py — หน้าติดต่อเจ้าหน้าที่ (Contact Staff)
+# ==============================================================================
+# หน้าจอสำหรับแสดงรายชื่อเจ้าหน้าที่ที่สามารถติดต่อได้
+# แสดงข้อมูล: ชื่อ, ตำแหน่ง, อีเมล (กดเปิด mailto:), Line (กดเปิด link)
+#
+# ใช้ Mock Data — สามารถเปลี่ยนเป็นเรียก API ได้ภายหลัง
+# Route: "/contact_staff"
+# ==============================================================================
 import logging
 import flet as ft
 from components.shared_navbar import SharedNavBar
@@ -7,7 +15,10 @@ from core.config import APP_COLORS
 
 logger = logging.getLogger(__name__)
 
-# ข้อมูลเจ้าหน้าที่ (Mock Data — สามารถเปลี่ยนเป็นเรียก API ภายหลัง)
+# ──────────────────────────────────────────────
+# Mock Data: ข้อมูลเจ้าหน้าที่
+# สามารถเปลี่ยนเป็นเรียก API ภายหลังได้
+# ──────────────────────────────────────────────
 STAFF_LIST = [
     {
         "name": "นางสาว อรปรียา",
@@ -34,7 +45,10 @@ STAFF_LIST = [
 
 
 def _action_button(icon, label, bgcolor, text_color="white"):
-    """สร้างปุ่ม action พร้อมไอคอน (phone / email / Line)"""
+    """
+    ฟังก์ชันช่วยสร้างปุ่ม action (email / Line)
+    แสดงเป็น pill shape (มุมมน 20px) พร้อมไอคอน + ข้อความ
+    """
     return ft.Container(
         content=ft.Row(
             [
@@ -46,16 +60,21 @@ def _action_button(icon, label, bgcolor, text_color="white"):
         ),
         bgcolor=bgcolor,
         padding=ft.padding.symmetric(horizontal=14, vertical=8),
-        border_radius=20,
+        border_radius=20,      # ทำให้เป็นทรง pill
     )
 
 
 def _staff_card(staff, page):
-    """สร้างการ์ดเจ้าหน้าที่แต่ละคน"""
+    """
+    สร้างการ์ดเจ้าหน้าที่แต่ละคน
+    ประกอบด้วย:
+    - ไอคอนโปรไฟล์ + ชื่อ + ตำแหน่ง
+    - ปุ่ม email (เปิด mailto:) + ปุ่ม Line (เปิด link)
+    """
     return ft.Container(
         content=ft.Column(
             [
-                # ชื่อ + ไอคอนโปรไฟล์
+                # ── ส่วนบน: ไอคอน + ชื่อ + ตำแหน่ง ──
                 ft.Row(
                     [
                         ft.Icon(
@@ -84,9 +103,10 @@ def _staff_card(staff, page):
                     spacing=10,
                 ),
                 ft.Container(height=6),
-                # ปุ่ม phone / email / Line
+                # ── ส่วนล่าง: ปุ่ม email + Line ──
                 ft.Row(
                     [
+                        # ปุ่ม Email — กดแล้วเปิดแอปอีเมล
                         ft.GestureDetector(
                             content=_action_button(
                                 ft.Icons.MAIL_OUTLINE, "email", "#9E9E9E", "black87"
@@ -95,6 +115,7 @@ def _staff_card(staff, page):
                                 f"mailto:{em}"
                             ),
                         ),
+                        # ปุ่ม Line — กดแล้วเปิด Line link
                         ft.GestureDetector(
                             content=_action_button(
                                 ft.Icons.PLAY_ARROW, "Line", "#4CAF50"
@@ -119,7 +140,9 @@ def _staff_card(staff, page):
 
 
 def ContactStaffScreen(page: ft.Page):
-    # Auth guard
+    """สร้างหน้าจอติดต่อเจ้าหน้าที่"""
+
+    # Auth Guard
     user_id = require_auth(page)
     if not user_id:
         return ft.View(
@@ -129,7 +152,7 @@ def ContactStaffScreen(page: ft.Page):
 
     staff_count = len(STAFF_LIST)
 
-    # Header: icon + title + count
+    # ── Header: ไอคอน + ชื่อหน้า + จำนวนเจ้าหน้าที่ ──
     header = ft.Row(
         [
             ft.Icon(
@@ -157,13 +180,14 @@ def ContactStaffScreen(page: ft.Page):
         spacing=12,
     )
 
-    # Staff list
+    # ── รายชื่อเจ้าหน้าที่ (สร้างจาก STAFF_LIST) ──
     staff_cards = ft.Column(
         [_staff_card(s, page) for s in STAFF_LIST],
         spacing=15,
         scroll=ft.ScrollMode.AUTO,
     )
 
+    # คืนค่า View
     return ft.View(
         route="/contact_staff",
         bgcolor=APP_COLORS["background"],

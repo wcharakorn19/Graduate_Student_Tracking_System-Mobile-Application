@@ -1,4 +1,15 @@
-# src/screens/profile_screen.py
+# ==============================================================================
+# src/screens/profile_screen.py — หน้าโปรไฟล์ผู้ใช้ (รองรับทั้ง Student + Advisor)
+# ==============================================================================
+# หน้าจอนี้แสดงโปรไฟล์ของผู้ใช้ที่ Login อยู่
+# รองรับ 2 บทบาท:
+#   - Student → แสดงข้อมูลส่วนตัว + วิทยานิพนธ์ + ความคืบหน้า
+#   - Advisor → แสดงข้อมูลส่วนตัว + ตำแหน่งวิชาการ + ข้อมูลอื่นๆ
+#
+# มีปุ่ม "ออกจากระบบ" ด้านล่าง (ล้าง Session + กลับไปหน้า Login)
+#
+# Route: "/profile"
+# ==============================================================================
 import flet as ft
 from components.shared_navbar import SharedNavBar
 from components.base_card import BaseCard
@@ -12,7 +23,9 @@ from core.auth_guard import require_auth
 
 
 def ProfileScreen(page: ft.Page):
-    # --- ดึง Session ---
+    """สร้างหน้าจอ Profile (ปรับเนื้อหาตาม Role อัตโนมัติ)"""
+
+    # ── Auth Guard + ดึง Session ──
     user_id = require_auth(page)
     if not user_id:
         return ft.View(
@@ -21,7 +34,7 @@ def ProfileScreen(page: ft.Page):
     session_name = page.session.get("user_full_name")
     session_role = page.session.get("user_role")
 
-    # 🌟 เลือก Controller ที่ถูกต้องตาม Role
+    # ── เลือก Controller + Model เริ่มต้นตาม Role ──
     is_advisor = session_role == "advisor"
 
     if is_advisor:
@@ -33,12 +46,13 @@ def ProfileScreen(page: ft.Page):
 
     error_container = ft.Column()
 
-    # ฟังก์ชันสำหรับโหลดข้อมูลแบบ Async
+    # ── ฟังก์ชันโหลดข้อมูลแบบ Async ──
     async def load_data(e=None):
+        """โหลดข้อมูลโปรไฟล์จาก API ตาม Role"""
         nonlocal profile
         error_container.controls.clear()
 
-        # แสดง Spinner แทน layout หลัก
+        # แสดง Spinner ระหว่างโหลด
         main_scroll.controls.clear()
         main_scroll.controls.append(
             ft.Container(
@@ -47,19 +61,21 @@ def ProfileScreen(page: ft.Page):
         )
         page.update()
 
-        # 🌟 เรียก Controller ตาม Role
+        # เรียก Controller ตาม Role
         result = await controller.get_profile_data(user_id, session_name, session_role)
 
         if result["success"]:
+            # โหลดสำเร็จ → อัปเดต profile + สร้าง Layout
             profile = result["data"]
             build_main_layout()
             page.update()
         else:
+            # โหลดล้มเหลว → แสดง Error + Layout ด้วยข้อมูลเปล่า
             main_scroll.controls.clear()
             error_container.controls.append(
                 ErrorBanner(f"เกิดข้อผิดพลาด: {result.get('message', 'Unknown Error')}")
             )
-            # แสดงหน้าแต่ไม่มีข้อมูล พร้อม Error
+            # สร้าง Model เปล่าเพื่อให้ Layout ไม่ crash
             if is_advisor:
                 profile = AdvisorProfileModel(
                     full_name=session_name or "-", role="อาจารย์ที่ปรึกษา"
@@ -71,8 +87,9 @@ def ProfileScreen(page: ft.Page):
             build_main_layout()
             page.update()
 
-    # ฟังก์ชันช่วยสร้างรายการข้อมูลแต่ละแถว
+    # ── ฟังก์ชันช่วยสร้างแถวข้อมูล ──
     def create_info_row(icon_name, label, value, show_divider=True):
+        """สร้างแถวข้อมูล: [ไอคอน] [label] [value] พร้อมเส้นแบ่ง"""
         row = ft.Container(
             content=ft.Row(
                 [
@@ -114,6 +131,7 @@ def ProfileScreen(page: ft.Page):
         return row
 
     def section_title(title):
+        """สร้างหัวข้อ Section (สีชมพูแดง)"""
         return ft.Container(
             content=ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color="#EF3961"),
             padding=ft.padding.only(left=25, top=20, bottom=10),
@@ -122,11 +140,14 @@ def ProfileScreen(page: ft.Page):
     main_scroll = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, expand=True)
 
     def build_main_layout():
-        # --- 1. ส่วนหัว (Header) ---
+        """สร้าง Layout หลักทั้งหน้าจากข้อมูล Profile"""
+
+        # ── ส่วนที่ 1: Header (ไล่สี Gradient) ──
         header = ft.Container(
             content=ft.Column(
                 [
                     ft.Container(height=30),
+                    # ไอคอนโปรไฟล์ (วงกลมขาว)
                     ft.Container(
                         content=ft.Icon(
                             ft.Icons.PERSON_OUTLINE, size=45, color="white"
@@ -138,6 +159,7 @@ def ProfileScreen(page: ft.Page):
                         alignment=ft.alignment.center,
                     ),
                     ft.Container(height=10),
+                    # ชื่อ + บทบาท
                     ft.Text(
                         profile.full_name,
                         size=22,
@@ -159,14 +181,15 @@ def ProfileScreen(page: ft.Page):
             width=float("inf"),
         )
 
-        # --- 2. ข้อมูลโปรไฟล์ (แยกตาม Role) ---
+        # ── ส่วนที่ 2: เนื้อหาโปรไฟล์ (แยกตาม Role) ──
         if is_advisor:
             content_sections = _build_advisor_sections()
         else:
             content_sections = _build_student_sections()
 
-        # --- 3. ปุ่มออกจากระบบ ---
+        # ── ส่วนที่ 3: ปุ่มออกจากระบบ (Logout) ──
         def handle_logout(e):
+            """ล้าง Session ทั้งหมด + redirect ไปหน้า Login"""
             page.session.clear()
             page.go("/login")
 
@@ -191,7 +214,7 @@ def ProfileScreen(page: ft.Page):
             on_click=handle_logout,
         )
 
-        # โหลดเข้า main_scroll
+        # ── ประกอบร่างทุกส่วนเข้าด้วยกัน ──
         main_scroll.controls.clear()
         main_scroll.controls.extend(
             [header, error_container]
@@ -199,10 +222,13 @@ def ProfileScreen(page: ft.Page):
             + [ft.Container(height=10), logout_btn]
         )
 
-    # =============================================
-    # 🧑‍🏫 Advisor Profile Sections
-    # =============================================
+    # ══════════════════════════════════════════════
+    # ส่วนโปรไฟล์สำหรับอาจารย์ที่ปรึกษา (Advisor)
+    # ══════════════════════════════════════════════
     def _build_advisor_sections():
+        """สร้าง Section ข้อมูลสำหรับอาจารย์ (3 การ์ด)"""
+
+        # การ์ด 1: ข้อมูลส่วนตัวและการติดต่อ
         personal_list = BaseCard(
             content=ft.Column(
                 [
@@ -225,6 +251,7 @@ def ProfileScreen(page: ft.Page):
             padding=0,
         )
 
+        # การ์ด 2: ตำแหน่งวิชาการและสถานที่
         position_list = BaseCard(
             content=ft.Column(
                 [
@@ -250,6 +277,7 @@ def ProfileScreen(page: ft.Page):
             padding=0,
         )
 
+        # การ์ด 3: ข้อมูลด้านอื่นๆ
         other_list = BaseCard(
             content=ft.Column(
                 [
@@ -278,10 +306,13 @@ def ProfileScreen(page: ft.Page):
             other_list,
         ]
 
-    # =============================================
-    # 🧑‍🎓 Student Profile Sections (เดิม)
-    # =============================================
+    # ══════════════════════════════════════════════
+    # ส่วนโปรไฟล์สำหรับนักศึกษา (Student)
+    # ══════════════════════════════════════════════
     def _build_student_sections():
+        """สร้าง Section ข้อมูลสำหรับนักศึกษา (3 การ์ด)"""
+
+        # การ์ด 1: ข้อมูลส่วนตัว
         personal_list = BaseCard(
             content=ft.Column(
                 [
@@ -314,6 +345,7 @@ def ProfileScreen(page: ft.Page):
             padding=0,
         )
 
+        # การ์ด 2: ข้อมูลวิทยานิพนธ์
         thesis_list = BaseCard(
             content=ft.Column(
                 [
@@ -350,10 +382,11 @@ def ProfileScreen(page: ft.Page):
             padding=0,
         )
 
+        # การ์ด 3: สรุปผลการดำเนินการ
         progress_list = BaseCard(
             content=ft.Column(
                 [
-                    # สอบหัวข้อเรื่อง
+                    # === สอบหัวข้อเรื่อง ===
                     ft.Container(
                         content=ft.Text(
                             "การสอบหัวข้อและเค้าโครง",
@@ -379,7 +412,7 @@ def ProfileScreen(page: ft.Page):
                         "วันที่อนุมัติหัวข้อ",
                         profile.progress.topic_approve_date,
                     ),
-                    # สอบวิทยานิพนธ์ขั้นสุดท้าย
+                    # === สอบวิทยานิพนธ์ขั้นสุดท้าย ===
                     ft.Container(
                         content=ft.Text(
                             "การสอบวิทยานิพนธ์ขั้นสุดท้าย",
@@ -405,7 +438,7 @@ def ProfileScreen(page: ft.Page):
                         "วันที่สำเร็จการศึกษา",
                         profile.progress.final_approve_date,
                     ),
-                    # สอบภาษาอังกฤษ
+                    # === สอบภาษาอังกฤษ ===
                     ft.Container(
                         content=ft.Text(
                             "ผลการสอบภาษาอังกฤษ ป.โท",
@@ -451,6 +484,7 @@ def ProfileScreen(page: ft.Page):
     # รัน Async แบบไม่บล็อก UI
     page.run_task(load_data)
 
+    # คืนค่า View
     return ft.View(
         route="/profile",
         bgcolor="#FFF6FE",

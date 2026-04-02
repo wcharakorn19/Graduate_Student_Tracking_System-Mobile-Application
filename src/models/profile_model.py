@@ -1,38 +1,73 @@
+# ==============================================================================
+# src/models/profile_model.py — Data Model สำหรับโปรไฟล์นักศึกษา
+# ==============================================================================
+# ไฟล์นี้กำหนดโครงสร้างข้อมูล (Data Model) ของโปรไฟล์นักศึกษา
+# ใช้ @dataclass ของ Python เพื่อสร้าง class ที่เก็บข้อมูลอย่างมีโครงสร้าง
+# ข้อดี: ลดโค้ดซ้ำ, มี type hint, สร้าง __init__ อัตโนมัติ
+#
+# ประกอบด้วย 3 คลาส:
+#   1. ThesisModel   — ข้อมูลวิทยานิพนธ์ (ชื่อเรื่อง + อาจารย์ที่ปรึกษา)
+#   2. ProgressModel — ข้อมูลความคืบหน้า (สอบหัวข้อ, สอบสุดท้าย, สอบภาษา)
+#   3. ProfileModel  — ข้อมูลโปรไฟล์หลัก (ข้อมูลส่วนตัว + thesis + progress)
+# ==============================================================================
 from dataclasses import dataclass, field
 
 
 @dataclass
 class ThesisModel:
-    title_th: str = "-"
-    title_en: str = "-"
-    main_advisor: str = "-"
-    co_advisor_1: str = "-"
-    co_advisor_2: str = "-"
+    """
+    โมเดลข้อมูลวิทยานิพนธ์
+    เก็บชื่อเรื่องทั้งภาษาไทยและอังกฤษ พร้อมรายชื่ออาจารย์ที่ปรึกษา
+    ค่า default เป็น "-" เผื่อ API ไม่ส่งข้อมูลมาบางฟิลด์
+    """
+    title_th: str = "-"         # ชื่อวิทยานิพนธ์ (ภาษาไทย)
+    title_en: str = "-"         # ชื่อวิทยานิพนธ์ (ภาษาอังกฤษ)
+    main_advisor: str = "-"     # ชื่ออาจารย์ที่ปรึกษาหลัก
+    co_advisor_1: str = "-"     # ชื่ออาจารย์ที่ปรึกษาร่วม คนที่ 1
+    co_advisor_2: str = "-"     # ชื่ออาจารย์ที่ปรึกษาร่วม คนที่ 2
 
 
 @dataclass
 class ProgressModel:
-    topic_exam_date: str = "-"
-    topic_status: str = "-"
-    topic_approve_date: str = "-"
-    final_exam_date: str = "-"
-    final_status: str = "-"
-    final_approve_date: str = "-"
-    english_test_type: str = "-"
-    english_test_date: str = "-"
-    english_test_status: str = "-"
+    """
+    โมเดลข้อมูลความคืบหน้าของนักศึกษา แบ่งเป็น 3 ส่วน:
+    1. การสอบหัวข้อและเค้าโครง (Topic Exam)
+    2. การสอบวิทยานิพนธ์ขั้นสุดท้าย (Final Exam)
+    3. ผลการสอบภาษาอังกฤษ (English Test)
+    """
+    # ─── ส่วนที่ 1: การสอบหัวข้อและเค้าโครง ───
+    topic_exam_date: str = "-"      # วันที่สอบหัวข้อ
+    topic_status: str = "-"         # สถานะการสอบหัวข้อ
+    topic_approve_date: str = "-"   # วันที่อนุมัติหัวข้อ
+
+    # ─── ส่วนที่ 2: การสอบวิทยานิพนธ์ขั้นสุดท้าย ───
+    final_exam_date: str = "-"      # วันที่สอบขั้นสุดท้าย
+    final_status: str = "-"         # สถานะการสอบขั้นสุดท้าย
+    final_approve_date: str = "-"   # วันที่สำเร็จการศึกษา
+
+    # ─── ส่วนที่ 3: ผลการสอบภาษาอังกฤษ ───
+    english_test_type: str = "-"    # ประเภทการสอบ (เช่น TOEIC, IELTS)
+    english_test_date: str = "-"    # วันที่อนุมัติผลสอบ
+    english_test_status: str = "-"  # สถานะผลสอบ
 
 
 @dataclass
 class ProfileModel:
-    user_id: str = "-"
-    full_name: str = "-"
-    role: str = "-"
-    email: str = "-"
-    phone: str = "-"
-    education_level: str = "-"
-    faculty: str = "-"
-    major: str = "-"
-    status: str = "-"
-    thesis: ThesisModel = field(default_factory=ThesisModel)
-    progress: ProgressModel = field(default_factory=ProgressModel)
+    """
+    โมเดลข้อมูลโปรไฟล์นักศึกษา — ข้อมูลครบทุกด้าน
+    รวมข้อมูลส่วนตัว + ข้อมูลวิทยานิพนธ์ + ข้อมูลความคืบหน้า
+
+    ใช้ field(default_factory=...) สำหรับ nested dataclass
+    เพื่อให้ Python สร้าง instance ใหม่ทุกครั้ง (ไม่ share กัน)
+    """
+    user_id: str = "-"              # รหัสนักศึกษา
+    full_name: str = "-"            # ชื่อ-นามสกุล
+    role: str = "-"                 # บทบาท (เช่น "นักศึกษา")
+    email: str = "-"                # อีเมล
+    phone: str = "-"                # เบอร์โทรศัพท์
+    education_level: str = "-"      # ระดับการศึกษา (ป.โท / ป.เอก)
+    faculty: str = "-"              # คณะ
+    major: str = "-"                # สาขาวิชา
+    status: str = "-"               # สถานะ (กำลังศึกษา / สำเร็จ)
+    thesis: ThesisModel = field(default_factory=ThesisModel)        # ข้อมูลวิทยานิพนธ์
+    progress: ProgressModel = field(default_factory=ProgressModel)  # ข้อมูลความคืบหน้า

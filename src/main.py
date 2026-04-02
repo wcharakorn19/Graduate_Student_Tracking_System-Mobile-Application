@@ -1,27 +1,54 @@
-# src/main.py
-import logging
-import flet as ft
-from core.config import APP_TITLE
-from core.app_router import AppRouter
+# ==============================================================================
+# src/main.py — จุดเริ่มต้นของแอปพลิเคชัน (Entry Point)
+# ==============================================================================
+# ไฟล์นี้ทำหน้าที่เป็น Entry Point หลักของแอป Flet
+# หน้าที่:
+#   1. ตั้งค่าระบบ Logging สำหรับ Debug ทั้ง Application
+#   2. สร้างและตั้งค่า Page (หน้าต่าง) ของแอป เช่น ชื่อ, ขนาดหน้าจอ
+#   3. เชื่อมต่อระบบ Routing (การนำทาง) ผ่าน AppRouter
+#   4. นำทางไปยังหน้าแรก ("/") คือหน้า Welcome Screen
+# ==============================================================================
+import logging                          # ใช้สำหรับบันทึก Log ระหว่างรันแอป
+import flet as ft                       # Framework Flet สำหรับสร้าง UI
+from core.config import APP_TITLE       # นำเข้าชื่อแอปจากไฟล์ config กลาง
+from core.app_router import AppRouter   # นำเข้าระบบ Router สำหรับจัดการเส้นทางหน้าจอ
 
+# ──────────────────────────────────────────────
 # ตั้งค่า Logging สำหรับทั้ง Application
+# - level=DEBUG   → แสดง Log ทุกระดับ (DEBUG, INFO, WARNING, ERROR)
+# - format        → กำหนดรูปแบบการแสดงผล: เวลา [ระดับ] ชื่อ Module: ข้อความ
+# - datefmt       → กำหนดรูปแบบเวลาเป็น ชั่วโมง:นาที:วินาที
+# ──────────────────────────────────────────────
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
 
-# Setup App
+
+# ──────────────────────────────────────────────
+# ฟังก์ชันหลัก main — ถูกเรียกเมื่อแอปเริ่มทำงาน
+# รับ parameter page จาก Flet เป็นตัวแทนของหน้าต่างแอป
+# ──────────────────────────────────────────────
 def main(page: ft.Page):
+    # ตั้งชื่อแอปที่แสดงบน Title Bar
     page.title = APP_TITLE
+    # กำหนดขนาดหน้าต่างให้เหมือนหน้าจอมือถือ (402 x 874 px)
     page.window.width = 402
     page.window.height = 874
 
-    # Setup Navigation and Routing with AppRouter
+    # เชื่อมต่อระบบ Navigation/Routing — AppRouter จะรับหน้าที่จัดการ
+    # ว่าเมื่อ URL เปลี่ยน จะโหลดหน้าจอไหนมาแสดง
     AppRouter(page)
 
+    # สั่งให้แอปเปิดที่หน้าแรก (Welcome Screen) ทันทีที่เริ่มต้น
     page.go("/")
 
 
+# ──────────────────────────────────────────────
+# จุดเริ่มต้น: ถ้ารันไฟล์นี้โดยตรง ให้เปิดแอป Flet
+# - target=main       → ฟังก์ชันที่ Flet จะเรียกเมื่อเริ่ม
+# - assets_dir="assets" → โฟลเดอร์ที่เก็บไฟล์ static เช่น รูปภาพ, โลโก้
+# ──────────────────────────────────────────────
 if __name__ == "__main__":
     ft.app(target=main, assets_dir="assets")

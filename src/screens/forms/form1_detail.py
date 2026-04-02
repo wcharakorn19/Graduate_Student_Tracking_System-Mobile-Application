@@ -1,19 +1,40 @@
-# src/screens/forms/form1_detail.py
+# ==============================================================================
+# src/screens/forms/form1_detail.py — หน้ารายละเอียดฟอร์ม 1
+# ==============================================================================
+# แบบฟอร์มขอรับรองการเป็นอาจารย์ที่ปรึกษาวิทยานิพนธ์ หลัก/ร่วม
+#
+# การทำงาน:
+#   1. ตรวจสอบ Auth Guard (ต้อง Login ก่อน)
+#   2. สร้างตัวแปร UI ทั้งหมดก่อน (แสดง "Loading...")
+#   3. โหลดข้อมูลจาก API แบบ Async ผ่าน FormController
+#   4. เมื่อได้ข้อมูล → อัปเดตค่าในตัวแปร UI → page.update()
+#
+# ข้อมูลที่แสดง: ข้อมูลนักศึกษา + อาจารย์ที่ปรึกษาหลัก/ร่วม
+# Route: "/form1/{submission_id}"
+#
+# หมายเหตุ: Form 2-6 และ Exam Result มีโครงสร้างเดียวกัน
+#           แตกต่างกันเฉพาะข้อมูลที่แสดงและ layout ของแต่ละฟอร์ม
+# ==============================================================================
 import flet as ft
-from controllers.form_controller import FormController
-from core.auth_guard import require_auth
-from core.config import APP_COLORS
+from controllers.form_controller import FormController   # Controller จัดการฟอร์ม
+from core.auth_guard import require_auth                 # ตรวจสอบ Login
+from core.config import APP_COLORS                      # ชุดสีกลาง
 from components.form_helpers import (
-    create_form_row,
-    FormDetailCard,
-    FormDetailAppBar,
-    form_text_value,
+    create_form_row,       # สร้างแถว label-value
+    FormDetailCard,        # สร้างการ์ดมาตรฐาน
+    FormDetailAppBar,      # สร้าง AppBar พร้อมปุ่มกลับ
+    form_text_value,       # สร้าง Text widget สำหรับแสดงค่า
 )
 
 
 def FormOneDetailScreen(page: ft.Page, submission_id: str):
+    """
+    สร้างหน้าจอรายละเอียด Form 1
+    รับ submission_id จาก URL parameter เพื่อดึงข้อมูลจาก API
+    """
     controller = FormController()
 
+    # ── Auth Guard ──
     user_id = require_auth(page)
     if not user_id:
         return ft.View(
@@ -22,7 +43,8 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
         )
     user_role = page.session.get("user_role")
 
-    # UI Components (รอรับข้อมูล)
+    # ── ขั้นตอนที่ 1: สร้างตัวแปร UI (แสดงค่าเริ่มต้น "Loading...") ──
+    # ตัวแปรเหล่านี้จะถูกอัปเดตค่าเมื่อ API ส่งข้อมูลกลับมา
     student_name_val = form_text_value("Loading...")
     student_id_val = form_text_value("Loading...")
     degree_val = form_text_value()
@@ -35,11 +57,13 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
     main_advisor_val = form_text_value("Loading...")
     co_advisor_val = form_text_value()
 
-    # 🌟 ฟังก์ชันโหลดข้อมูลแบบ Async
+    # ── ขั้นตอนที่ 2: ฟังก์ชันโหลดข้อมูลแบบ Async ──
     async def load_data(e=None):
+        """เรียก FormController เพื่อดึงข้อมูล Form 1 แล้วอัปเดต UI"""
         result = await controller.get_form1_detail(submission_id)
 
         if result["success"]:
+            # อัปเดตค่าในตัวแปร UI ทั้งหมด
             data = result["data"]
             student_name_val.value = data["student_name"]
             student_id_val.value = data["student_id"]
@@ -53,12 +77,15 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
             main_advisor_val.value = data["main_advisor"]
             co_advisor_val.value = data["co_advisor"]
         else:
+            # กรณี Error → แสดงข้อความ Error แทนชื่อนักศึกษา
             student_name_val.value = result["message"]
             student_name_val.color = "red"
 
         page.update()
 
-    # --- ประกอบร่าง Layout ---
+    # ── ขั้นตอนที่ 3: ประกอบร่าง Layout ──
+
+    # การ์ดข้อมูลนักศึกษา
     student_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
@@ -80,6 +107,7 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
         )
     )
 
+    # การ์ดอาจารย์ที่ปรึกษา
     advisor_card = FormDetailCard(
         content=ft.Column(
             spacing=12,
@@ -102,16 +130,19 @@ def FormOneDetailScreen(page: ft.Page, submission_id: str):
         )
     )
 
+    # รันฟังก์ชันโหลดข้อมูลแบบ Async
     page.run_task(load_data)
 
+    # ── คืนค่า View ──
     return ft.View(
         route=f"/form1/{submission_id}",
         bgcolor=APP_COLORS["form_background"],
         scroll=ft.ScrollMode.AUTO,
-        appbar=FormDetailAppBar(page, user_role),
+        appbar=FormDetailAppBar(page, user_role),   # AppBar พร้อมปุ่มกลับ
         controls=[
             ft.Column(
                 controls=[
+                    # หัวข้อฟอร์ม (กลางหน้าจอ)
                     ft.Container(
                         padding=ft.padding.only(left=20, right=20, bottom=10, top=20),
                         content=ft.Text(
